@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * ── Design Tokens ────────────────────────────────────────────────────────────
+ * Edit these variables to retheme the entire application.
+ * Values are HSL channels (no hsl() wrapper — Tailwind adds it).
+ */
+@layer base {
+  /* ── Dark theme (default) ──────────────────────────────────────────────── */
+  :root,
+  .dark {
+    --background:             240 10%  3.9%;   /* zinc-950  — page bg        */
+    --foreground:               0  0% 98%;     /* near-white — body text     */
+
+    --card:                   240  5.9% 10%;   /* zinc-900  — cards, tables  */
+    --card-foreground:          0  0% 98%;
+
+    --border:                 240  5%  26%;    /* zinc-700  — all borders    */
+    --input:                  240  3.7% 15.9%; /* zinc-800  — input bg       */
+    --ring:                   262 83%  58%;    /* violet-600 — focus ring    */
+
+    --primary:                262 83%  58%;    /* violet-600 — primary btn   */
+    --primary-foreground:       0  0% 100%;
+
+    --secondary:              240  3.7% 15.9%; /* zinc-800  — secondary btn  */
+    --secondary-foreground:   240  5%  65%;    /* zinc-400                   */
+
+    --muted:                  240  3.7% 15.9%; /* zinc-800                   */
+    --muted-foreground:       240  4%  46%;    /* zinc-500  — labels         */
+
+    --destructive:              0 63%   9%;    /* red-950                    */
+    --destructive-foreground:   0 72%  67%;    /* red-400                    */
+
+    --radius: 0.5rem;
+  }
+
+  /* ── Light theme ───────────────────────────────────────────────────────── */
+  .light {
+    --background:               0  0% 98%;     /* zinc-50   — page bg        */
+    --foreground:             240 10%  3.9%;   /* zinc-950  — body text      */
+
+    --card:                     0  0% 100%;    /* white     — cards, tables  */
+    --card-foreground:        240 10%  3.9%;
+
+    --border:                 240  6%  90%;    /* zinc-200  — all borders    */
+    --input:                  240  6%  95%;    /* zinc-100  — input bg       */
+    --ring:                   262 83%  58%;    /* violet-600 — focus ring    */
+
+    --primary:                262 83%  58%;    /* violet-600 — primary btn   */
+    --primary-foreground:       0  0% 100%;
+
+    --secondary:              240  5%  96%;    /* zinc-100  — secondary btn  */
+    --secondary-foreground:   240 10%  3.9%;   /* zinc-950                   */
+
+    --muted:                  240  5%  96%;    /* zinc-100                   */
+    --muted-foreground:       240  4%  46%;    /* zinc-500  — labels         */
+
+    --destructive:              0 84%  60%;    /* red-500                    */
+    --destructive-foreground:   0  0% 100%;
+
+    --radius: 0.5rem;
+  }
+
+  /* Apply the border colour globally so `border` alone uses the token */
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-geist), Arial, Helvetica, sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+}
