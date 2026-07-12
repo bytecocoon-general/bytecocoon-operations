@@ -7,9 +7,10 @@
   },
   "scripts": {
     "build": "prisma generate && next build",
-    "start": "prisma migrate deploy && next start",
+    "start": "next start",
     "dev": "next dev",
     "lint": "next lint",
+    "migrate:deploy": "prisma migrate deploy",
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
