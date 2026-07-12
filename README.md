@@ -49,6 +49,14 @@ Antes de publicar alterações:
 npm run build
 ```
 
+## Ambientes online
+
+- `develop` publica no ambiente Railway `development`.
+- `main` publica no ambiente Railway `production`.
+
+Cada ambiente tem uma base PostgreSQL e credenciais Clerk próprias. As migrations
+são executadas antes do arranque através da configuração em `railway.json`.
+
 ## Dados de demonstração
 
 O seed contém dados fictícios para desenvolvimento. Não deve ser executado numa base de dados de produção.
