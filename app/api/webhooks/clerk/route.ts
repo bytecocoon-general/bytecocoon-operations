@@ -37,13 +37,26 @@ export async function POST(req: Request) {
 
   // Reagir ao evento de criação de utilizador
   if (evt.type === 'user.created') {
-    const { id, email_addresses, first_name, last_name } = evt.data
+    const { id, email_addresses, first_name, last_name, public_metadata } = evt.data
 
     const email     = email_addresses[0]?.email_address
     const fullName  = [first_name, last_name].filter(Boolean).join(' ') || email
 
     if (!email) {
       return NextResponse.json({ error: 'Email em falta' }, { status: 400 })
+    }
+
+    const inviteId = typeof public_metadata?.registrationInviteId === 'string'
+      ? public_metadata.registrationInviteId
+      : null
+    const invite = inviteId ? await db.registrationInvite.findUnique({ where: { id: inviteId } }) : null
+    const normalizedEmail = email.toLowerCase()
+
+    if (!invite || invite.email !== normalizedEmail || invite.status !== 'PENDING' || invite.expiresAt <= new Date()) {
+      if (invite?.status === 'PENDING' && invite.expiresAt <= new Date()) {
+        await db.registrationInvite.update({ where: { id: invite.id }, data: { status: 'EXPIRED' } })
+      }
+      return NextResponse.json({ error: 'Convite inválido, expirado ou não corresponde ao email.' }, { status: 403 })
     }
 
     // Garantir que existe pelo menos um departamento por defeito
@@ -54,7 +67,7 @@ export async function POST(req: Request) {
     })
 
     // Criar o Employee (se ainda não existir)
-    await db.employee.upsert({
+    const employee = await db.employee.upsert({
       where:  { clerkId: id },
       update: {},
       create: {
@@ -63,8 +76,15 @@ export async function POST(req: Request) {
         email:        email,
         hourlyRate:   0,           // Admin define depois
         role:         'EMPLOYEE',  // Role por defeito
+        accessStatus: 'PENDING',
+        isActive:     false,
         departmentId: defaultDept.id,
       },
+    })
+
+    await db.registrationInvite.update({
+      where: { id: invite.id },
+      data: { status: 'REGISTERED', registeredAt: new Date(), employeeId: employee.id },
     })
 
     console.log(`✅ Employee criado para: ${email}`)

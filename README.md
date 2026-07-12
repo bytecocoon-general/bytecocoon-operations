@@ -57,6 +57,14 @@ npm run build
 Cada ambiente tem uma base PostgreSQL e credenciais Clerk próprias. As migrations
 são executadas antes do arranque através da configuração em `railway.json`.
 
+### Registo por convite
+
+No Clerk, activar `Restrictions → Restricted mode`. Configurar também o webhook
+`/api/webhooks/clerk` para o evento `user.created` e guardar o respetivo signing
+secret em `CLERK_WEBHOOK_SECRET`. Cada ambiente deve definir `APP_URL` com o seu
+URL público. A aplicação limita os convites a uma hora e mantém novos registos
+pendentes até aprovação por um administrador.
+
 ## Dados de demonstração
 
 O seed contém dados fictícios para desenvolvimento. Não deve ser executado numa base de dados de produção.
