@@ -13,6 +13,7 @@ interface Department { id: string; name: string }
 interface Employee {
   id: string; name: string; email: string; hourlyRate: number
   role: string; isActive: boolean; department: Department; departmentId: string
+  managerId: string | null
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -24,7 +25,7 @@ export default function EmployeesManager() {
   const [departments, setDepartments] = useState<Department[]>([])
   const [loading,     setLoading]     = useState(true)
   const [editing,     setEditing]     = useState<Employee | null>(null)
-  const [form,        setForm]        = useState({ name: '', hourlyRate: '', role: 'EMPLOYEE', departmentId: '', isActive: true })
+  const [form,        setForm]        = useState({ name: '', hourlyRate: '', role: 'EMPLOYEE', departmentId: '', isActive: true, managerId: '' })
   const [saving,      setSaving]      = useState(false)
   const [message,     setMessage]     = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -39,7 +40,7 @@ export default function EmployeesManager() {
 
   function startEdit(e: Employee) {
     setEditing(e)
-    setForm({ name: e.name, hourlyRate: e.hourlyRate.toString(), role: e.role, departmentId: e.departmentId, isActive: e.isActive })
+    setForm({ name: e.name, hourlyRate: e.hourlyRate.toString(), role: e.role, departmentId: e.departmentId, isActive: e.isActive, managerId: e.managerId ?? '' })
   }
 
   async function handleSubmit() {
@@ -48,7 +49,7 @@ export default function EmployeesManager() {
     try {
       const res = await fetch('/api/admin/employees', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editing.id, name: form.name, email: editing.email, hourlyRate: parseFloat(form.hourlyRate) || 0, role: form.role, departmentId: form.departmentId }),
+        body: JSON.stringify({ id: editing.id, name: form.name, email: editing.email, hourlyRate: parseFloat(form.hourlyRate) || 0, role: form.role, departmentId: form.departmentId, managerId: form.managerId || null }),
       })
       if (!res.ok) throw new Error()
       const saved = await res.json()
@@ -97,7 +98,7 @@ export default function EmployeesManager() {
                   {editing?.id === emp.id && (
                     <tr key={`edit-${emp.id}`} className="bg-secondary/30">
                       <td colSpan={6} className="px-5 py-4">
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="grid grid-cols-5 gap-3">
                           <div>
                             <Label>Nome</Label>
                             <Input className="mt-1" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
@@ -118,6 +119,13 @@ export default function EmployeesManager() {
                               <option value="EMPLOYEE">Colaborador</option>
                               <option value="MANAGER">Gestor</option>
                               <option value="ADMIN">Administrador</option>
+                            </SelectNative>
+                          </div>
+                          <div>
+                            <Label>Gestor</Label>
+                            <SelectNative className="mt-1" value={form.managerId} onChange={e => setForm(f => ({ ...f, managerId: e.target.value }))}>
+                              <option value="">Sem gestor</option>
+                              {employees.filter(e => e.id !== editing.id).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                             </SelectNative>
                           </div>
                         </div>

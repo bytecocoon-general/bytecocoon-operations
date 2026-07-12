@@ -24,7 +24,11 @@ model Employee {
     role               String          @default("EMPLOYEE")
     department         Department      @relation(fields: [departmentId], references: [id])
     departmentId       String
+    manager            Employee?       @relation("EmployeeManager", fields: [managerId], references: [id])
+    managerId          String?
+    reports            Employee[]      @relation("EmployeeManager")
     timesheets         Timesheet[]
+    createdTimesheets  Timesheet[]     @relation("TimesheetCreatedBy")
     payrolls           Payroll[]
     expenses           Expense[]
     projectMemberships ProjectMember[]
@@ -132,6 +136,10 @@ model Timesheet {
     id          String          @id @default(cuid())
     employee    Employee        @relation(fields: [employeeId], references: [id])
     employeeId  String
+    // Colaborador que efectivamente introduziu o registo, quando diferente do dono
+    // (ex: admin/manager a introduzir dados retroactivos em nome de outro colaborador)
+    createdBy   Employee?       @relation("TimesheetCreatedBy", fields: [createdById], references: [id])
+    createdById String?
     month       Int
     year        Int
     status      String          @default("DRAFT")

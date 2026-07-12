@@ -35,9 +35,11 @@ export const expenseSchema = z.object({
 })
 
 export const timesheetSchema = z.object({
-  month:    z.number().int().min(1).max(12),
-  year:     z.number().int().min(2020).max(2100),
-  lines:    z.array(timesheetLineSchema).max(500),
+  month:      z.number().int().min(1).max(12),
+  year:       z.number().int().min(2020).max(2100),
+  lines:      z.array(timesheetLineSchema).max(500),
+  // Colaborador alvo, quando um ADMIN/MANAGER introduz em nome de outro (omitido = o próprio)
+  employeeId: z.string().cuid().optional(),
 })
 
 export const employeeSchema = z.object({
@@ -46,6 +48,7 @@ export const employeeSchema = z.object({
   hourlyRate:   z.number().positive().max(9999),
   departmentId: z.string().cuid(),
   role:         z.enum(['EMPLOYEE', 'MANAGER', 'ADMIN']).default('EMPLOYEE'),
+  managerId:    z.string().cuid().optional().nullable(),
 })
 
 export const clientSchema = z.object({

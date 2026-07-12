@@ -72,7 +72,7 @@ function defaultBulk(days: number) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function TimesheetGrid() {
+export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
   const now = new Date()
   const [year,        setYear]        = useState(now.getFullYear())
   const [month,       setMonth]       = useState(now.getMonth() + 1)
@@ -96,13 +96,13 @@ export default function TimesheetGrid() {
 
   useEffect(() => {
     fetch('/api/projects').then(r => r.json()).then(setProjects)
-    fetch('/api/my-project-permissions').then(r => r.json()).then(setPermissions)
-  }, [])
+    fetch(`/api/my-project-permissions${employeeId ? `?employeeId=${employeeId}` : ''}`).then(r => r.json()).then(setPermissions)
+  }, [employeeId])
 
   useEffect(() => {
     setLoading(true)
     setBulkOpen(false)
-    fetch(`/api/timesheets?month=${month}&year=${year}`)
+    fetch(`/api/timesheets?month=${month}&year=${year}${employeeId ? `&employeeId=${employeeId}` : ''}`)
       .then(r => r.json())
       .then(data => {
         setTimesheet(data)
@@ -111,7 +111,7 @@ export default function TimesheetGrid() {
         })))
         setLoading(false)
       })
-  }, [month, year, refreshKey])
+  }, [month, year, employeeId, refreshKey])
 
   useEffect(() => { setBulk(defaultBulk(getDaysInMonth(year, month))) }, [year, month])
 
@@ -184,6 +184,7 @@ export default function TimesheetGrid() {
     try {
       const body = {
         month, year,
+        ...(employeeId ? { employeeId } : {}),
         lines: lines.map(l => ({
           date:               new Date(l.date.substring(0, 10) + 'T00:00:00.000Z').toISOString(),
           projectId:          l.projectId ?? null,
@@ -470,6 +471,7 @@ export default function TimesheetGrid() {
       {importOpen && (
         <ImportTimesheetModal
           projects={projects}
+          employeeId={employeeId}
           onClose={() => setImportOpen(false)}
           onImported={(m, y) => {
             setImportOpen(false)

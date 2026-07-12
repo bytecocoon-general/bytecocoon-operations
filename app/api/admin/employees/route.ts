@@ -32,6 +32,8 @@ export async function PUT(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
   const { id, ...data } = parsed.data
+  if (data.managerId === id) return NextResponse.json({ error: 'Um colaborador não pode ser gestor de si próprio' }, { status: 400 })
+
   const employee = await db.employee.update({
     where:   { id },
     data:    { ...data, hourlyRate: data.hourlyRate },

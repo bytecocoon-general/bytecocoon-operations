@@ -1,13 +1,12 @@
-import TimesheetGrid from '@/components/timesheet/TimesheetGrid'
+import { getCurrentEmployee } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import TimesheetPageClient from '@/components/timesheet/TimesheetPageClient'
 
-export default function TimesheetPage() {
-  return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-100">A Minha Timesheet</h1>
-        <p className="text-zinc-500 mt-1">Regista as tuas horas trabalhadas por dia e projecto.</p>
-      </div>
-      <TimesheetGrid />
-    </div>
-  )
+export default async function TimesheetPage() {
+  const employee = await getCurrentEmployee()
+  if (!employee) redirect('/sign-in')
+
+  const canDelegate = employee.role === 'ADMIN' || employee.role === 'MANAGER'
+
+  return <TimesheetPageClient canDelegate={canDelegate} selfId={employee.id} />
 }

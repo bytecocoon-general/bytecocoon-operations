@@ -30,6 +30,7 @@ interface ImportResult {
 
 interface Props {
   projects:   Project[]
+  employeeId?: string
   onClose:    () => void
   onImported: (month: number, year: number) => void
 }
@@ -60,7 +61,7 @@ function typeColour(type: string): string {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function ImportTimesheetModal({ projects, onClose, onImported }: Props) {
+export default function ImportTimesheetModal({ projects, employeeId, onClose, onImported }: Props) {
   const [step,      setStep]      = useState<'upload' | 'preview' | 'result'>('upload')
   const [dragging,  setDragging]  = useState(false)
   const [parsing,   setParsing]   = useState(false)
@@ -126,6 +127,7 @@ export default function ImportTimesheetModal({ projects, onClose, onImported }: 
           month:     result.month,
           year:      result.year,
           projectId: projectId || null,
+          ...(employeeId ? { employeeId } : {}),
           lines:     result.lines.map(l => ({
             date:        l.date,
             hours:       l.hours,

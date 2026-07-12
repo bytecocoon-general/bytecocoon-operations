@@ -26,10 +26,10 @@
  *   { timesheetId, inserted, skipped, total }
  */
 
-import { auth }        from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { db }          from '@/lib/db'
 import { z }           from 'zod'
+import { getCurrentEmployee, canActOnBehalfOf } from '@/lib/auth'
 
 const lineSchema = z.object({
   date:        z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -41,18 +41,16 @@ const lineSchema = z.object({
 })
 
 const bodySchema = z.object({
-  month:     z.number().int().min(1).max(12),
-  year:      z.number().int().min(2000).max(2100),
-  projectId: z.string().nullable(),
-  lines:     z.array(lineSchema).min(1).max(500),
+  month:      z.number().int().min(1).max(12),
+  year:       z.number().int().min(2000).max(2100),
+  projectId:  z.string().nullable(),
+  lines:      z.array(lineSchema).min(1).max(500),
+  employeeId: z.string().cuid().optional(),
 })
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
-
-  const employee = await db.employee.findUnique({ where: { clerkId: userId } })
-  if (!employee) return NextResponse.json({ error: 'Colaborador não encontrado' }, { status: 404 })
+  const actor = await getCurrentEmployee()
+  if (!actor) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
   const body   = await req.json()
   const parsed = bodySchema.safeParse(body)
@@ -60,7 +58,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { month, year, projectId, lines } = parsed.data
+  const { month, year, projectId, lines, employeeId: requestedEmployeeId } = parsed.data
+
+  let employee = actor
+  if (requestedEmployeeId && requestedEmployeeId !== actor.id) {
+    const target = await db.employee.findUnique({ where: { id: requestedEmployeeId } })
+    if (!target) return NextResponse.json({ error: 'Colaborador não encontrado' }, { status: 404 })
+    if (!canActOnBehalfOf(actor, target)) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+    employee = target
+  }
 
   // Validate projectId exists and is active (if provided)
   if (projectId) {
@@ -78,7 +84,11 @@ export async function POST(req: NextRequest) {
 
   if (!timesheet) {
     timesheet = await db.timesheet.create({
-      data: { employeeId: employee.id, month, year, status: 'DRAFT' },
+      data: {
+        employeeId:  employee.id,
+        createdById: employee.id !== actor.id ? actor.id : undefined,
+        month, year, status: 'DRAFT',
+      },
       include: { lines: { select: { date: true, type: true, hours: true, extraHours: true, projectId: true } } },
     })
   }
