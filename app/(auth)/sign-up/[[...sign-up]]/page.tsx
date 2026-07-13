@@ -1,7 +1,10 @@
 import { SignUp } from '@clerk/nextjs'
+import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db'
+import InvitationSessionGuard from '@/components/auth/InvitationSessionGuard'
 
 export default async function SignUpPage({ searchParams }: { searchParams: { invite?: string } }) {
+  const { userId } = await auth()
   const invite = searchParams.invite
     ? await db.registrationInvite.findUnique({ where: { id: searchParams.invite } })
     : null
@@ -18,6 +21,10 @@ export default async function SignUpPage({ searchParams }: { searchParams: { inv
         </div>
       </div>
     )
+  }
+
+  if (userId) {
+    return <InvitationSessionGuard invitedEmail={invite.email} />
   }
 
   return (
