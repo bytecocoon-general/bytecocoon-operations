@@ -45,6 +45,13 @@ const emptyForm = {
 
 const STATUS_LABEL: Record<string, string> = { DRAFT: 'Rascunho', SENT: 'Enviada', PAID: 'Paga', OVERDUE: 'Em Atraso', CANCELLED: 'Cancelada' }
 
+// parseFloat(v) || 23 treats a deliberate 0% tax rate as "empty" and silently resets it to 23 — parse and
+// only fall back to the default when the input isn't a valid number at all.
+function parseTaxRate(v: string): number {
+  const n = parseFloat(v)
+  return Number.isNaN(n) ? 23 : n
+}
+
 export default function InvoicesManager() {
   const [invoices,     setInvoices]     = useState<Invoice[]>([])
   const [projects,     setProjects]     = useState<Project[]>([])
@@ -117,7 +124,7 @@ export default function InvoicesManager() {
     try {
       const payload = {
         clientId: form.clientId, issueDate: form.issueDate, dueDate: form.dueDate,
-        taxRate: parseFloat(form.taxRate) || 23, currency: form.currency, notes: form.notes || null,
+        taxRate: parseTaxRate(form.taxRate), currency: form.currency, notes: form.notes || null,
         lines: form.lines.map(l => ({ projectId: l.projectId || null, description: l.description, quantity: parseFloat(l.quantity) || 0, unitPrice: parseFloat(l.unitPrice) || 0 })),
         ...(editing ? { id: editing.id } : {}),
       }
@@ -142,7 +149,7 @@ export default function InvoicesManager() {
     try {
       const res = await fetch('/api/admin/invoices/from-timesheet', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month: parseInt(genForm.month), year: parseInt(genForm.year), taxRate: parseFloat(genForm.taxRate) || 23, dueInDays: parseInt(genForm.dueInDays) || 30 }),
+        body: JSON.stringify({ month: parseInt(genForm.month), year: parseInt(genForm.year), taxRate: parseTaxRate(genForm.taxRate), dueInDays: parseInt(genForm.dueInDays) || 30 }),
       })
       const data = await res.json()
       if (!res.ok) { showMsg('error', data.error ?? 'Erro ao gerar.'); return }
