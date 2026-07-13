@@ -10,11 +10,12 @@ import { FormMessage }   from '@/components/ui/form-message'
 import { StatusBadge }   from '@/components/ui/badge'
 
 interface Department { id: string; name: string }
-interface Employee   { id: string; name: string; hourlyRate: number; department: Department }
+interface Employee   { id: string; name: string; hourlyRate: number; employmentType: string; department: Department }
 interface Payroll {
   id: string; month: number; year: number; status: string
   regularHours: number; overtimeHours: number; hourlyRate: number
   grossPay: number; expensesTotal: number; deductions: number; netPay: number
+  salaryAmount: number; perDiemTotal: number; mileageTotal: number
   notes: string | null; processedAt: string | null; paidAt: string | null; employee: Employee
 }
 
@@ -96,13 +97,13 @@ export default function PayrollManager() {
       {creating && (
         <div className="bg-secondary/30 border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold text-zinc-200 mb-1">Processar Payroll</h3>
-          <p className="text-xs text-zinc-500 mb-3">O sistema calcula automaticamente as horas e despesas da timesheet aprovada.</p>
+          <p className="text-xs text-zinc-500 mb-3">Para colaboradores internos, o sistema soma salário mensal, per diems e quilómetros da timesheet aprovada. As despesas seguem um fluxo separado.</p>
           <div className="grid grid-cols-4 gap-3 mb-3">
             <div>
               <Label>Funcionário *</Label>
               <SelectNative className="mt-1" value={form.employeeId} onChange={e => setForm(p => ({ ...p, employeeId: e.target.value }))}>
                 <option value="">— Seleccionar —</option>
-                {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                {employees.filter(e => e.employmentType === 'INTERNAL').map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </SelectNative>
             </div>
             <div>
@@ -193,10 +194,11 @@ export default function PayrollManager() {
                     <tr key={`exp-${p.id}`} className="bg-secondary/20">
                       <td colSpan={10} className="px-8 py-3">
                         <div className="grid grid-cols-5 gap-4 text-xs text-zinc-400">
-                          <div><span className="font-medium text-zinc-300">Taxa/Hora:</span> €{Number(p.hourlyRate).toFixed(2)}</div>
+                          <div><span className="font-medium text-zinc-300">Salário mensal:</span> €{Number(p.salaryAmount).toFixed(2)}</div>
                           <div><span className="font-medium text-zinc-300">Horas normais:</span> {Number(p.regularHours).toFixed(2)}h</div>
                           <div><span className="font-medium text-zinc-300">Horas extra:</span> {Number(p.overtimeHours).toFixed(2)}h (×1.5)</div>
-                          <div><span className="font-medium text-zinc-300">Despesas:</span> €{Number(p.expensesTotal).toFixed(2)}</div>
+                          <div><span className="font-medium text-zinc-300">Per diems:</span> €{Number(p.perDiemTotal).toFixed(2)}</div>
+                          <div><span className="font-medium text-zinc-300">Quilómetros:</span> €{Number(p.mileageTotal).toFixed(2)}</div>
                           <div><span className="font-medium text-zinc-300">Deduções:</span> €{Number(p.deductions).toFixed(2)}</div>
                           {p.notes  && <div className="col-span-5"><span className="font-medium text-zinc-300">Notas:</span> {p.notes}</div>}
                           {p.paidAt && <div className="col-span-5"><span className="font-medium text-zinc-300">Pago em:</span> {new Date(p.paidAt).toLocaleDateString('pt-PT')}</div>}

@@ -12,6 +12,7 @@ import { StatusBadge }   from '@/components/ui/badge'
 interface Department { id: string; name: string }
 interface Employee {
   id: string; name: string; email: string; hourlyRate: number
+  employmentType: string; monthlySalary: number; perDiemRate: number; mileageMode: string; mileageRate: number
   role: string; isActive: boolean; department: Department; departmentId: string
   managerId: string | null
 }
@@ -25,7 +26,7 @@ export default function EmployeesManager() {
   const [departments, setDepartments] = useState<Department[]>([])
   const [loading,     setLoading]     = useState(true)
   const [editing,     setEditing]     = useState<Employee | null>(null)
-  const [form,        setForm]        = useState({ name: '', hourlyRate: '', role: 'EMPLOYEE', departmentId: '', isActive: true, managerId: '' })
+  const [form,        setForm]        = useState({ name: '', hourlyRate: '', role: 'EMPLOYEE', departmentId: '', isActive: true, managerId: '', employmentType: 'INTERNAL', monthlySalary: '0', perDiemRate: '0', mileageMode: 'NONE', mileageRate: '0' })
   const [saving,      setSaving]      = useState(false)
   const [message,     setMessage]     = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -40,7 +41,7 @@ export default function EmployeesManager() {
 
   function startEdit(e: Employee) {
     setEditing(e)
-    setForm({ name: e.name, hourlyRate: e.hourlyRate.toString(), role: e.role, departmentId: e.departmentId, isActive: e.isActive, managerId: e.managerId ?? '' })
+    setForm({ name: e.name, hourlyRate: e.hourlyRate.toString(), role: e.role, departmentId: e.departmentId, isActive: e.isActive, managerId: e.managerId ?? '', employmentType: e.employmentType, monthlySalary: Number(e.monthlySalary).toString(), perDiemRate: Number(e.perDiemRate).toString(), mileageMode: e.mileageMode, mileageRate: Number(e.mileageRate).toString() })
   }
 
   async function handleSubmit() {
@@ -49,7 +50,7 @@ export default function EmployeesManager() {
     try {
       const res = await fetch('/api/admin/employees', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editing.id, name: form.name, email: editing.email, hourlyRate: parseFloat(form.hourlyRate) || 0, role: form.role, departmentId: form.departmentId, managerId: form.managerId || null }),
+        body: JSON.stringify({ id: editing.id, name: form.name, email: editing.email, hourlyRate: parseFloat(form.hourlyRate) || 0, role: form.role, departmentId: form.departmentId, managerId: form.managerId || null, employmentType: form.employmentType, monthlySalary: parseFloat(form.monthlySalary) || 0, perDiemRate: parseFloat(form.perDiemRate) || 0, mileageMode: form.mileageMode, mileageRate: parseFloat(form.mileageRate) || 0 }),
       })
       if (!res.ok) throw new Error()
       const saved = await res.json()
@@ -128,6 +129,11 @@ export default function EmployeesManager() {
                               {employees.filter(e => e.id !== editing.id).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                             </SelectNative>
                           </div>
+                          <div><Label>Tipo de contrato</Label><SelectNative className="mt-1" value={form.employmentType} onChange={e => setForm(f => ({ ...f, employmentType: e.target.value }))}><option value="INTERNAL">Interno</option><option value="EXTERNAL">Externo</option></SelectNative></div>
+                          <div><Label>Salário mensal (€)</Label><Input className="mt-1" type="number" step="0.01" value={form.monthlySalary} onChange={e => setForm(f => ({ ...f, monthlySalary: e.target.value }))} /></div>
+                          <div><Label>Per diem diário (€)</Label><Input className="mt-1" type="number" step="0.01" value={form.perDiemRate} onChange={e => setForm(f => ({ ...f, perDiemRate: e.target.value }))} /></div>
+                          <div><Label>Compensação deslocação</Label><SelectNative className="mt-1" value={form.mileageMode} onChange={e => setForm(f => ({ ...f, mileageMode: e.target.value }))}><option value="NONE">Sem compensação</option><option value="PER_KM">Por quilómetro</option><option value="PER_DAY">Valor fixo por dia</option></SelectNative></div>
+                          <div><Label>{form.mileageMode === 'PER_DAY' ? 'Valor por dia (€)' : 'Valor por km (€)'}</Label><Input className="mt-1" type="number" step="0.0001" value={form.mileageRate} onChange={e => setForm(f => ({ ...f, mileageRate: e.target.value }))} /></div>
                         </div>
                         <div className="flex gap-2 mt-3">
                           <Button disabled={saving} onClick={handleSubmit}>

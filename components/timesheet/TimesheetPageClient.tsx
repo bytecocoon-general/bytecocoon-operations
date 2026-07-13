@@ -25,7 +25,7 @@ export default function TimesheetPageClient({ canDelegate, selfId }: { canDelega
           <h1 className="text-2xl font-bold text-zinc-100">
             {isSelf ? 'A Minha Timesheet' : `Timesheet de ${selected?.name ?? ''}`}
           </h1>
-          <p className="text-zinc-500 mt-1">Regista as horas trabalhadas por dia e projecto.</p>
+          <p className="text-zinc-500 mt-1">Regista horas, deslocações internacionais e quilometragem do mês.</p>
         </div>
         {canDelegate && employees.length > 1 && (
           <div className="flex items-center gap-2">

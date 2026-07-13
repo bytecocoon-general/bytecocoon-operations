@@ -21,6 +21,11 @@ model Employee {
     name               String
     email              String          @unique
     hourlyRate         Decimal         @db.Decimal(10, 2)
+    employmentType     String          @default("INTERNAL")
+    monthlySalary      Decimal         @default(0) @db.Decimal(12, 2)
+    perDiemRate        Decimal         @default(0) @db.Decimal(10, 2)
+    mileageMode        String          @default("NONE")
+    mileageRate        Decimal         @default(0) @db.Decimal(10, 4)
     role               String          @default("EMPLOYEE")
     accessStatus       String          @default("APPROVED")
     accessReviewedAt   DateTime?
@@ -92,6 +97,8 @@ model Project {
     timesheetLines TimesheetLine[]
     invoiceLines   InvoiceLine[]
     expenses       Expense[]
+    travelPeriods  TravelPeriod[]
+    mileageEntries MileageEntry[]
     members        ProjectMember[]
     skills         ProjectSkill[]
     createdAt      DateTime        @default(now())
@@ -141,6 +148,9 @@ model Payroll {
     overtimeHours Decimal   @default(0) @db.Decimal(8, 2)
     hourlyRate    Decimal   @db.Decimal(10, 2)
     grossPay      Decimal   @db.Decimal(12, 2)
+    salaryAmount  Decimal   @default(0) @db.Decimal(12, 2)
+    perDiemTotal  Decimal   @default(0) @db.Decimal(12, 2)
+    mileageTotal  Decimal   @default(0) @db.Decimal(12, 2)
     expensesTotal Decimal   @default(0) @db.Decimal(12, 2)
     deductions    Decimal   @default(0) @db.Decimal(12, 2)
     netPay        Decimal   @db.Decimal(12, 2)
@@ -165,6 +175,8 @@ model Timesheet {
     year            Int
     status          String          @default("DRAFT")
     lines           TimesheetLine[]
+    travelPeriods   TravelPeriod[]
+    mileageEntries  MileageEntry[]
     auditLogs       AuditLog[]
     submittedAt     DateTime?
     reviewedAt      DateTime?
@@ -181,6 +193,46 @@ model Timesheet {
     updatedAt       DateTime        @updatedAt
 
     @@unique([employeeId, month, year])
+}
+
+model TravelPeriod {
+    id          String    @id @default(cuid())
+    timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+    timesheetId String
+    project     Project?  @relation(fields: [projectId], references: [id])
+    projectId   String?
+    startDate   DateTime  @db.Date
+    endDate     DateTime  @db.Date
+    country     String
+    description String?
+    dailyRate   Decimal   @db.Decimal(10, 2)
+    days        Int
+    amount      Decimal   @db.Decimal(12, 2)
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    @@index([timesheetId])
+}
+
+model MileageEntry {
+    id           String    @id @default(cuid())
+    timesheet    Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+    timesheetId  String
+    project      Project?  @relation(fields: [projectId], references: [id])
+    projectId    String?
+    date         DateTime  @db.Date
+    origin       String
+    destination  String
+    purpose      String?
+    kilometres   Decimal   @db.Decimal(10, 2)
+    vehiclePlate String?
+    rateMode     String
+    rate         Decimal   @db.Decimal(10, 4)
+    amount       Decimal   @db.Decimal(12, 2)
+    createdAt    DateTime  @default(now())
+    updatedAt    DateTime  @updatedAt
+
+    @@index([timesheetId, date])
 }
 
 model TimesheetLine {
@@ -237,7 +289,8 @@ model ProjectMember {
     endDate   DateTime? @db.Date
 
     // Taxa faturada ao cliente (diferente do custo interno employee.hourlyRate)
-    clientRate Decimal @default(0) @db.Decimal(10, 2)
+    clientRate  Decimal  @default(0) @db.Decimal(10, 2)
+    perDiemRate Decimal? @db.Decimal(10, 2)
 
     // Horas extra
     overtimeAllowed           Boolean @default(false)
@@ -305,8 +358,8 @@ model OperationalTarget {
     month             Int
     year              Int
     revenueTarget     Decimal? @db.Decimal(12, 2)
-    marginTarget      Decimal? @db.Decimal(5, 2)      // % ex: 25.0 = 25%
-    utilizationTarget Decimal? @db.Decimal(5, 2)      // %
+    marginTarget      Decimal? @db.Decimal(5, 2) // % ex: 25.0 = 25%
+    utilizationTarget Decimal? @db.Decimal(5, 2) // %
     createdAt         DateTime @default(now())
     updatedAt         DateTime @updatedAt
 
