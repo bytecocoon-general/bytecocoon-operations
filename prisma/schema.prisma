@@ -49,6 +49,8 @@ model RegistrationInvite {
     invitedById       String
     expiresAt         DateTime
     registeredAt      DateTime?
+    registeredEmail   String?
+    validationIssue   String?
     employeeId        String?   @unique
     createdAt         DateTime  @default(now())
     updatedAt         DateTime  @updatedAt
