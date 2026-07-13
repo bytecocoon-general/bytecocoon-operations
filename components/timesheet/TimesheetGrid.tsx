@@ -8,6 +8,7 @@ import { SelectNative } from '@/components/ui/select-native'
 import { FormMessage }  from '@/components/ui/form-message'
 import { StatusBadge }  from '@/components/ui/badge'
 import ImportTimesheetModal from './ImportTimesheetModal'
+import TravelCompensationEditor, { MileageEntryInput, TravelPeriodInput } from './TravelCompensationEditor'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ interface TimesheetLine {
   description:        string
 }
 
-interface Timesheet { id: string; status: string; lines: TimesheetLine[] }
+interface Timesheet { id: string; status: string; lines: TimesheetLine[]; travelPeriods: TravelPeriodInput[]; mileageEntries: MileageEntryInput[] }
 
 interface ProjectPermission {
   projectId:                 string
@@ -78,6 +79,8 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
   const [month,       setMonth]       = useState(now.getMonth() + 1)
   const [timesheet,   setTimesheet]   = useState<Timesheet | null>(null)
   const [lines,       setLines]       = useState<TimesheetLine[]>([])
+  const [travelPeriods, setTravelPeriods] = useState<TravelPeriodInput[]>([])
+  const [mileageEntries, setMileageEntries] = useState<MileageEntryInput[]>([])
   const [projects,    setProjects]    = useState<Project[]>([])
   const [permissions, setPermissions] = useState<Record<string, ProjectPermission>>({})
   const [loading,     setLoading]     = useState(true)
@@ -109,6 +112,8 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
         setLines((data?.lines ?? []).map((l: TimesheetLine) => ({
           ...l, overtimeMultiplier: l.overtimeMultiplier != null ? Number(l.overtimeMultiplier) : null,
         })))
+        setTravelPeriods((data?.travelPeriods ?? []).map((p: TravelPeriodInput) => ({ ...p, startDate: p.startDate.substring(0, 10), endDate: p.endDate.substring(0, 10), description: p.description ?? '' })))
+        setMileageEntries((data?.mileageEntries ?? []).map((m: MileageEntryInput) => ({ ...m, date: m.date.substring(0, 10), kilometres: Number(m.kilometres), purpose: m.purpose ?? '', vehiclePlate: m.vehiclePlate ?? '' })))
         setLoading(false)
       })
   }, [month, year, employeeId, refreshKey])
@@ -194,18 +199,20 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
           overtimeMultiplier: Number(l.extraHours) > 0 && l.overtimeMultiplier ? Number(l.overtimeMultiplier) : null,
           description:        l.description || null,
         })),
+        travelPeriods,
+        mileageEntries,
       }
       const res = await fetch('/api/timesheets', {
         method: timesheet ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      if (!res.ok) { const err = await res.json(); console.error(err); throw new Error() }
+      if (!res.ok) { const err = await res.json(); throw new Error(typeof err.error === 'string' ? err.error : 'Erro ao guardar.') }
       const data = await res.json()
       setTimesheet(data)
       setLines(data.lines.map((l: TimesheetLine) => ({ ...l, overtimeMultiplier: l.overtimeMultiplier != null ? Number(l.overtimeMultiplier) : null })))
       showMsg('success', 'Guardado com sucesso!')
-    } catch { showMsg('error', 'Erro ao guardar. Tenta novamente.') } finally { setSaving(false) }
+    } catch (error) { showMsg('error', error instanceof Error ? error.message : 'Erro ao guardar. Tenta novamente.') } finally { setSaving(false) }
   }
 
   async function submit() {
@@ -332,6 +339,8 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
       )}
 
       {message && <FormMessage type={message.type}>{message.text}</FormMessage>}
+
+      <TravelCompensationEditor key={`${year}-${month}`} projects={projects} travelPeriods={travelPeriods} mileageEntries={mileageEntries} onTravelChange={setTravelPeriods} onMileageChange={setMileageEntries} locked={isLocked} month={month} year={year} />
 
       {/* Days grid */}
       {loading ? (

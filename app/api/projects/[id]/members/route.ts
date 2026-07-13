@@ -55,6 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       startDate:  parsed.data.startDate ? new Date(parsed.data.startDate) : null,
       endDate:    parsed.data.endDate   ? new Date(parsed.data.endDate)   : null,
       clientRate:                 parsed.data.clientRate,
+      perDiemRate:                parsed.data.perDiemRate ?? null,
       overtimeAllowed:            parsed.data.overtimeAllowed,
       overtimeWeekdayMultiplier:  parsed.data.overtimeWeekdayMultiplier,
       overtimeWeekendMultiplier:  parsed.data.overtimeWeekendMultiplier,

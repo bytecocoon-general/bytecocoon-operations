@@ -27,6 +27,7 @@ interface ProjectMember {
   startDate:                  string | null
   endDate:                    string | null
   clientRate:                 number
+  perDiemRate:                number | null
   overtimeAllowed:            boolean
   overtimeWeekdayMultiplier:  number
   overtimeWeekendMultiplier:  number
@@ -53,6 +54,7 @@ function emptyForm(employeeId = '') {
     startDate:                 '',
     endDate:                   '',
     clientRate:                0,
+    perDiemRate:               '' as number | '',
     overtimeAllowed:           false,
     overtimeWeekdayMultiplier: 1.5,
     overtimeWeekendMultiplier: 2.0,
@@ -115,6 +117,7 @@ export default function StaffingManager() {
       startDate:                 member.startDate ? member.startDate.substring(0, 10) : '',
       endDate:                   member.endDate   ? member.endDate.substring(0, 10)   : '',
       clientRate:                Number(member.clientRate),
+      perDiemRate:               member.perDiemRate != null ? Number(member.perDiemRate) : '',
       overtimeAllowed:           member.overtimeAllowed,
       overtimeWeekdayMultiplier: Number(member.overtimeWeekdayMultiplier),
       overtimeWeekendMultiplier: Number(member.overtimeWeekendMultiplier),
@@ -139,6 +142,7 @@ export default function StaffingManager() {
       const payload = {
         ...form,
         clientRate:           Number(form.clientRate) || 0,
+        perDiemRate:          form.perDiemRate !== '' ? Number(form.perDiemRate) : null,
         onCallWeeklyRate:     Number(form.onCallWeeklyRate) || 0,
         expensesMonthlyLimit: form.expensesMonthlyLimit !== '' ? Number(form.expensesMonthlyLimit) : null,
         startDate:            form.startDate || null,
@@ -392,6 +396,10 @@ function MemberForm({
         <div className="space-y-1">
           <Label className="text-xs">Taxa faturada ao cliente (€/h)</Label>
           <Input type="number" min="0" step="0.5" value={form.clientRate} onChange={e => setF('clientRate', parseFloat(e.target.value) || 0)} className={`${inp} w-full`} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Per diem do projeto (€/dia, opcional)</Label>
+          <Input type="number" min="0" step="0.01" value={form.perDiemRate} onChange={e => setF('perDiemRate', e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="Usa taxa do colaborador" className={`${inp} w-full`} />
         </div>
       </div>
 

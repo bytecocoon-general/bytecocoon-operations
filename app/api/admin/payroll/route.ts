@@ -50,42 +50,36 @@ export async function POST(req: NextRequest) {
 
   const employee = await db.employee.findUnique({ where: { id: employeeId } })
   if (!employee) return NextResponse.json({ error: 'Funcionário não encontrado.' }, { status: 404 })
+  if (employee.employmentType !== 'INTERNAL') return NextResponse.json({ error: 'Payroll aplica-se apenas a colaboradores internos.' }, { status: 400 })
 
   // Calcular a partir da timesheet aprovada
   const timesheet = await db.timesheet.findUnique({
     where:   { employeeId_month_year: { employeeId, month, year } },
-    include: { lines: true },
+    include: { lines: true, travelPeriods: true, mileageEntries: true },
   })
+  if (!timesheet || timesheet.status !== 'APPROVED') {
+    return NextResponse.json({ error: 'A timesheet deste mês tem de estar aprovada antes de processar o payroll.' }, { status: 400 })
+  }
 
   let regularHours  = 0
   let overtimeHours = 0
-  let expensesTotal = 0
+  const expensesTotal = 0
 
-  if (timesheet?.status === 'APPROVED') {
+  if (timesheet.status === 'APPROVED') {
     for (const line of timesheet.lines) {
       if (line.type === 'WORK') {
         regularHours  += Number(line.hours)
         overtimeHours += Number(line.extraHours)
       }
     }
-    // Sum approved standalone expenses for this employee/month/year
-    const expAgg = await db.expense.aggregate({
-      where: {
-        employeeId,
-        status: 'APPROVED',
-        date: {
-          gte: new Date(year, month - 1, 1),
-          lte: new Date(year, month, 0),
-        },
-      },
-      _sum: { amount: true },
-    })
-    expensesTotal = Number(expAgg._sum?.amount ?? 0)
   }
 
   const hourlyRate = Number(employee.hourlyRate)
-  const grossPay   = regularHours * hourlyRate + overtimeHours * hourlyRate * 1.5
-  const netPay     = grossPay + expensesTotal - (deductions ?? 0)
+  const salaryAmount = Number(employee.monthlySalary)
+  const perDiemTotal = timesheet.travelPeriods.reduce((sum, period) => sum + Number(period.amount), 0)
+  const mileageTotal = timesheet.mileageEntries.reduce((sum, entry) => sum + Number(entry.amount), 0)
+  const grossPay = salaryAmount + perDiemTotal + mileageTotal
+  const netPay = grossPay - (deductions ?? 0)
 
   const payroll = await db.payroll.create({
     data: {
@@ -96,6 +90,9 @@ export async function POST(req: NextRequest) {
       overtimeHours,
       hourlyRate,
       grossPay,
+      salaryAmount,
+      perDiemTotal,
+      mileageTotal,
       expensesTotal,
       deductions: deductions ?? 0,
       netPay,

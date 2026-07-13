@@ -25,6 +25,8 @@ export async function GET(req: NextRequest) {
         },
       },
       lines: { orderBy: { date: 'asc' }, include: { project: { select: { name: true } } } },
+      travelPeriods: { orderBy: { startDate: 'asc' }, include: { project: { select: { name: true } } } },
+      mileageEntries: { orderBy: { date: 'asc' }, include: { project: { select: { name: true } } } },
     },
     orderBy: [{ year: 'desc' }, { month: 'desc' }, { submittedAt: 'desc' }],
   })
