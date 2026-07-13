@@ -52,12 +52,14 @@ export async function POST(req: Request) {
     const invite = inviteId ? await db.registrationInvite.findUnique({ where: { id: inviteId } }) : null
     const normalizedEmail = email.toLowerCase()
 
-    if (!invite || invite.email !== normalizedEmail || invite.status !== 'PENDING' || invite.expiresAt <= new Date()) {
+    if (!invite || invite.status !== 'PENDING' || invite.expiresAt <= new Date()) {
       if (invite?.status === 'PENDING' && invite.expiresAt <= new Date()) {
         await db.registrationInvite.update({ where: { id: invite.id }, data: { status: 'EXPIRED' } })
       }
       return NextResponse.json({ error: 'Convite inválido, expirado ou não corresponde ao email.' }, { status: 403 })
     }
+
+    const emailMismatch = invite.email !== normalizedEmail
 
     // Garantir que existe pelo menos um departamento por defeito
     const defaultDept = await db.department.upsert({
@@ -84,7 +86,13 @@ export async function POST(req: Request) {
 
     await db.registrationInvite.update({
       where: { id: invite.id },
-      data: { status: 'REGISTERED', registeredAt: new Date(), employeeId: employee.id },
+      data: {
+        status: emailMismatch ? 'EMAIL_MISMATCH' : 'REGISTERED',
+        registeredAt: new Date(),
+        registeredEmail: normalizedEmail,
+        validationIssue: emailMismatch ? 'O email registado não corresponde ao email convidado.' : null,
+        employeeId: employee.id,
+      },
     })
 
     console.log(`✅ Employee criado para: ${email}`)
