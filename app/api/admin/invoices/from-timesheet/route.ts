@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       },
     },
     include: {
-      employee: true,
+      employee: { include: { projectMemberships: { select: { projectId: true, clientRate: true } } } },
       lines: {
         include: { project: true },
         where: {
@@ -59,10 +59,14 @@ export async function POST(req: NextRequest) {
   })
 
   const invoiceLines: { projectId: string | null; description: string; quantity: number; unitPrice: number }[] = []
+  const warnings: string[] = []
 
   for (const ts of timesheets) {
+    const clientRateByProject: Record<string, number> = {}
+    for (const pm of ts.employee.projectMemberships) clientRateByProject[pm.projectId] = Number(pm.clientRate)
+
     // Agregar horas por projecto
-    const byProject: Record<string, { project: { id: string; name: string }; hours: number; rate: number }> = {}
+    const byProject: Record<string, { project: { id: string; name: string }; hours: number; rate: number | null }> = {}
 
     for (const line of ts.lines) {
       const key = line.projectId ?? '__no_project'
@@ -70,7 +74,7 @@ export async function POST(req: NextRequest) {
         byProject[key] = {
           project: { id: line.project?.id ?? '', name: line.project?.name ?? 'Sem projecto' },
           hours:   0,
-          rate:    Number(ts.employee.hourlyRate),
+          rate:    line.projectId ? (clientRateByProject[line.projectId] ?? null) : null,
         }
       }
       byProject[key].hours += Number(line.hours) + Number(line.extraHours)
@@ -78,6 +82,10 @@ export async function POST(req: NextRequest) {
 
     for (const item of Object.values(byProject)) {
       if (item.hours === 0) continue
+      if (item.rate == null) {
+        warnings.push(`${ts.employee.name} — ${item.project.name}: sem tarifa de cliente configurada (aloca ao projecto em Staffing); ${item.hours}h não facturadas.`)
+        continue
+      }
       const monthName = new Date(year, month - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
       invoiceLines.push({
         projectId:   item.project.id || null,
@@ -89,7 +97,11 @@ export async function POST(req: NextRequest) {
   }
 
   if (invoiceLines.length === 0) {
-    return NextResponse.json({ error: 'Nenhuma hora aprovada encontrada para este cliente neste período.' }, { status: 400 })
+    return NextResponse.json({
+      error: warnings.length > 0
+        ? `Nenhuma hora facturável: ${warnings.join(' ')}`
+        : 'Nenhuma hora aprovada encontrada para este cliente neste período.',
+    }, { status: 400 })
   }
 
   const subtotal  = invoiceLines.reduce((s, l) => s + l.quantity * l.unitPrice, 0)
@@ -120,5 +132,5 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  return NextResponse.json(invoice, { status: 201 })
+  return NextResponse.json({ ...invoice, warnings }, { status: 201 })
 }
