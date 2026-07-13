@@ -133,24 +133,31 @@ model Payroll {
 }
 
 model Timesheet {
-    id          String          @id @default(cuid())
-    employee    Employee        @relation(fields: [employeeId], references: [id])
-    employeeId  String
+    id              String          @id @default(cuid())
+    employee        Employee        @relation(fields: [employeeId], references: [id])
+    employeeId      String
     // Colaborador que efectivamente introduziu o registo, quando diferente do dono
     // (ex: admin/manager a introduzir dados retroactivos em nome de outro colaborador)
-    createdBy   Employee?       @relation("TimesheetCreatedBy", fields: [createdById], references: [id])
-    createdById String?
-    month       Int
-    year        Int
-    status      String          @default("DRAFT")
-    lines       TimesheetLine[]
-    auditLogs   AuditLog[]
-    submittedAt DateTime?
-    reviewedAt  DateTime?
-    reviewedBy  String?
-    reviewNote  String?
-    createdAt   DateTime        @default(now())
-    updatedAt   DateTime        @updatedAt
+    createdBy       Employee?       @relation("TimesheetCreatedBy", fields: [createdById], references: [id])
+    createdById     String?
+    month           Int
+    year            Int
+    status          String          @default("DRAFT")
+    lines           TimesheetLine[]
+    auditLogs       AuditLog[]
+    submittedAt     DateTime?
+    reviewedAt      DateTime?
+    reviewedBy      String?
+    reviewNote      String?
+    // Cache: fica preenchido quando todas as linhas WORK facturáveis (project.clientId != null)
+    // já têm TimesheetLine.invoicedAt, para runs futuras de geração de facturas poderem saltar
+    // esta timesheet sem ir buscar as linhas. Tem de ficar null enquanto houver alguma linha
+    // facturável por facturar — incluindo as que ficaram de fora só por falta de
+    // ProjectMember.clientRate — senão essas horas nunca mais reaparecem depois de a tarifa
+    // ser configurada.
+    fullyInvoicedAt DateTime?
+    createdAt       DateTime        @default(now())
+    updatedAt       DateTime        @updatedAt
 
     @@unique([employeeId, month, year])
 }
@@ -167,6 +174,9 @@ model TimesheetLine {
     extraHours         Decimal   @default(0) @db.Decimal(5, 2)
     overtimeMultiplier Decimal?  @db.Decimal(4, 2)
     description        String?
+    // Marca quando esta linha entrou numa factura gerada (evita re-facturar); fica null
+    // se a linha nunca chegou a ser facturada (ex: sem ProjectMember.clientRate configurada)
+    invoicedAt         DateTime?
     createdAt          DateTime  @default(now())
 }
 

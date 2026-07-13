@@ -54,11 +54,10 @@ export default function InvoicesManager() {
   const [form,         setForm]         = useState(emptyForm)
   const [saving,       setSaving]       = useState(false)
   const [message,      setMessage]      = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [genForm,      setGenForm]      = useState({ clientId: '', clientLabel: '', month: '', year: '', taxRate: '23', dueInDays: '30' })
+  const [genForm,      setGenForm]      = useState({ month: '', year: '', taxRate: '23', dueInDays: '30' })
   const [showGen,      setShowGen]      = useState(false)
   const [generating,   setGenerating]   = useState(false)
   const [showPicker,   setShowPicker]   = useState(false)
-  const [pickerTarget, setPickerTarget] = useState<'form' | 'gen'>('form')
 
   function showMsg(type: 'success' | 'error', text: string) {
     setMessage({ type, text })
@@ -78,11 +77,10 @@ export default function InvoicesManager() {
     })
   }, [])
 
-  function openPicker(target: 'form' | 'gen') { setPickerTarget(target); setShowPicker(true) }
+  function openPicker() { setShowPicker(true) }
 
   function handleClientPicked(c: PickedClient) {
-    if (pickerTarget === 'form') setForm(f => ({ ...f, clientId: c.id, clientLabel: c.name }))
-    else setGenForm(f => ({ ...f, clientId: c.id, clientLabel: c.name }))
+    setForm(f => ({ ...f, clientId: c.id, clientLabel: c.name }))
     setShowPicker(false)
   }
 
@@ -144,15 +142,15 @@ export default function InvoicesManager() {
     try {
       const res = await fetch('/api/admin/invoices/from-timesheet', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId: genForm.clientId, month: parseInt(genForm.month), year: parseInt(genForm.year), taxRate: parseFloat(genForm.taxRate) || 23, dueInDays: parseInt(genForm.dueInDays) || 30 }),
+        body: JSON.stringify({ month: parseInt(genForm.month), year: parseInt(genForm.year), taxRate: parseFloat(genForm.taxRate) || 23, dueInDays: parseInt(genForm.dueInDays) || 30 }),
       })
       const data = await res.json()
       if (!res.ok) { showMsg('error', data.error ?? 'Erro ao gerar.'); return }
-      setInvoices(prev => [data, ...prev])
+      setInvoices(prev => [...data.invoices, ...prev])
       setShowGen(false)
       const warningNote = data.warnings?.length ? ` Atenção: ${data.warnings.join(' ')}` : ''
-      showMsg('success', `Fatura ${data.invoiceNumber} gerada automaticamente!${warningNote}`)
-    } catch { showMsg('error', 'Erro ao gerar fatura.') } finally { setGenerating(false) }
+      showMsg('success', `${data.count} fatura(s) gerada(s) automaticamente!${warningNote}`)
+    } catch { showMsg('error', 'Erro ao gerar faturas.') } finally { setGenerating(false) }
   }
 
   return (
@@ -172,18 +170,9 @@ export default function InvoicesManager() {
       {/* Geração automática */}
       {showGen && (
         <div className="bg-blue-950/30 border border-blue-800/30 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-zinc-200 mb-3">Gerar Fatura a partir de Timesheets Aprovadas</h3>
-          <div className="grid grid-cols-5 gap-3 mb-3">
-            <div className="col-span-2">
-              <Label>Cliente</Label>
-              <div className="flex gap-1.5 mt-1">
-                <Input readOnly value={genForm.clientLabel} placeholder="— Seleccionar —" className="flex-1 w-auto cursor-default" />
-                <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => openPicker('gen')}><Search size={15} /></Button>
-                {genForm.clientId && (
-                  <Button type="button" variant="outline" size="icon" className="shrink-0 hover:text-red-400" onClick={() => setGenForm(f => ({ ...f, clientId: '', clientLabel: '' }))}><X size={15} /></Button>
-                )}
-              </div>
-            </div>
+          <h3 className="text-sm font-semibold text-zinc-200 mb-1">Gerar Faturas a partir de Timesheets Aprovadas</h3>
+          <p className="text-xs text-zinc-500 mb-3">Cria uma fatura por colaborador e por cliente, para todas as horas aprovadas neste período.</p>
+          <div className="grid grid-cols-3 gap-3 mb-3">
             <div>
               <Label>Mês</Label>
               <SelectNative className="mt-1" value={genForm.month} onChange={e => setGenForm(p => ({ ...p, month: e.target.value }))}>
@@ -205,8 +194,8 @@ export default function InvoicesManager() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button disabled={generating || !genForm.clientId || !genForm.month || !genForm.year} onClick={handleGenerate}>
-              <Zap size={14} /> {generating ? 'A gerar...' : 'Gerar Fatura'}
+            <Button disabled={generating || !genForm.month || !genForm.year} onClick={handleGenerate}>
+              <Zap size={14} /> {generating ? 'A gerar...' : 'Gerar Faturas'}
             </Button>
             <Button variant="outline" onClick={() => setShowGen(false)}><X size={14} /> Cancelar</Button>
           </div>
@@ -222,7 +211,7 @@ export default function InvoicesManager() {
               <Label>Cliente *</Label>
               <div className="flex gap-1.5 mt-1">
                 <Input readOnly value={form.clientLabel} placeholder="— Seleccionar —" className="flex-1 w-auto cursor-default" />
-                <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => openPicker('form')}><Search size={15} /></Button>
+                <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={openPicker}><Search size={15} /></Button>
                 {form.clientId && (
                   <Button type="button" variant="outline" size="icon" className="shrink-0 hover:text-red-400" onClick={() => setForm(f => ({ ...f, clientId: '', clientLabel: '' }))}><X size={15} /></Button>
                 )}
