@@ -24,7 +24,11 @@ interface Expense {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  SUBMITTED: 'Submetida', APPROVED: 'Aprovada', REJECTED: 'Rejeitada', DRAFT: 'Rascunho',
+  SUBMITTED: 'Submetida', APPROVED: 'Aprovada', PROCESSING: 'Em Processamento', PAID: 'Paga', REJECTED: 'Rejeitada', DRAFT: 'Rascunho',
+}
+
+const EMPTY_STATE_LABEL: Record<string, string> = {
+  SUBMITTED: 'submetidas', APPROVED: 'aprovadas', PROCESSING: 'em processamento', PAID: 'pagas', REJECTED: 'rejeitadas', DRAFT: 'em rascunho',
 }
 
 interface Props {
@@ -75,6 +79,24 @@ export default function ExpenseApprovalList({ onCountChange }: Props) {
     }
   }
 
+  async function handleStatus(id: string, status: 'PROCESSING' | 'PAID') {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/admin/expenses', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      })
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error) }
+      showMessage('success', status === 'PAID' ? 'Despesa marcada como paga!' : 'Despesa em processamento.')
+      setExpenses(prev => prev.filter(e => e.id !== id))
+    } catch (e: unknown) {
+      showMessage('error', (e as Error).message ?? 'Erro ao processar.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const totalAmount = expenses.reduce((s, e) => s + Number(e.amount), 0)
 
   return (
@@ -82,7 +104,7 @@ export default function ExpenseApprovalList({ onCountChange }: Props) {
 
       {/* Filtros */}
       <div className="flex gap-2">
-        {(['SUBMITTED', 'APPROVED', 'REJECTED'] as const).map(s => (
+        {(['SUBMITTED', 'APPROVED', 'PROCESSING', 'PAID', 'REJECTED'] as const).map(s => (
           <button
             key={s}
             onClick={() => setFilter(s)}
@@ -107,7 +129,7 @@ export default function ExpenseApprovalList({ onCountChange }: Props) {
       ) : expenses.length === 0 ? (
         <div className="bg-card rounded-xl border border-border px-6 py-16 text-center">
           <Receipt size={36} className="text-zinc-700 mx-auto mb-3" />
-          <p className="text-zinc-500">Não há despesas {STATUS_LABEL[filter].toLowerCase()}s.</p>
+          <p className="text-zinc-500">Não há despesas {EMPTY_STATE_LABEL[filter]}.</p>
         </div>
       ) : (
         <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -156,6 +178,28 @@ export default function ExpenseApprovalList({ onCountChange }: Props) {
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950 text-red-400 border border-red-800/30 text-xs rounded-lg hover:bg-red-900 disabled:opacity-40 transition-colors"
                           >
                             <XCircle size={13} /> Rejeitar
+                          </button>
+                        </div>
+                      )}
+                      {e.status === 'APPROVED' && (
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => handleStatus(e.id, 'PROCESSING')}
+                            disabled={saving}
+                            className="text-xs px-3 py-1.5 bg-blue-950 text-blue-400 border border-blue-800/30 rounded-lg hover:bg-blue-900 disabled:opacity-40 transition-colors"
+                          >
+                            Processar
+                          </button>
+                        </div>
+                      )}
+                      {e.status === 'PROCESSING' && (
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => handleStatus(e.id, 'PAID')}
+                            disabled={saving}
+                            className="text-xs px-3 py-1.5 bg-emerald-950 text-emerald-400 border border-emerald-800/30 rounded-lg hover:bg-emerald-900 disabled:opacity-40 transition-colors"
+                          >
+                            Marcar Paga
                           </button>
                         </div>
                       )}

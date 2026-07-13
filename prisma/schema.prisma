@@ -217,6 +217,9 @@ model Expense {
     reviewedBy  String?
     reviewNote  String?
     reviewedAt  DateTime?
+    // Fluxo financeiro pós-aprovação: APPROVED -> PROCESSING -> PAID (espelha Payroll)
+    processedAt DateTime?
+    paidAt      DateTime?
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
 }
