@@ -5,6 +5,7 @@ export default authMiddleware({
     '/',
     '/sign-in(.*)',
     '/sign-up(.*)',
+    '/registration-status',
     '/api/health',
     '/api/webhooks(.*)',
   ],

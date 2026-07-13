@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Clock, CheckSquare, FolderKanban, Users,
-  Building2, Receipt, Banknote, BarChart3, UserCog, CreditCard,
+  Building2, Receipt, Banknote, BarChart3, UserCog, CreditCard, UserPlus,
 } from 'lucide-react'
 
 type NavItem =
@@ -25,6 +25,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/employees', label: 'Colaboradores', icon: Users,        roles: ['MANAGER', 'ADMIN'] },
   { href: '/dashboard/clients',   label: 'Clientes',      icon: Building2,    roles: ['MANAGER', 'ADMIN'] },
   { href: '/dashboard/staffing',  label: 'Staffing',      icon: UserCog,      roles: ['MANAGER', 'ADMIN'] },
+  { href: '/dashboard/registrations', label: 'Registos', icon: UserPlus, roles: ['ADMIN'] },
 
   // ── Operações ─────────────────────────────────────────────────────────────
   { divider: true, label: 'Operações', roles: ['ADMIN'] },
