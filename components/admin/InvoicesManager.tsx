@@ -150,7 +150,8 @@ export default function InvoicesManager() {
       if (!res.ok) { showMsg('error', data.error ?? 'Erro ao gerar.'); return }
       setInvoices(prev => [data, ...prev])
       setShowGen(false)
-      showMsg('success', `Fatura ${data.invoiceNumber} gerada automaticamente!`)
+      const warningNote = data.warnings?.length ? ` Atenção: ${data.warnings.join(' ')}` : ''
+      showMsg('success', `Fatura ${data.invoiceNumber} gerada automaticamente!${warningNote}`)
     } catch { showMsg('error', 'Erro ao gerar fatura.') } finally { setGenerating(false) }
   }
 
