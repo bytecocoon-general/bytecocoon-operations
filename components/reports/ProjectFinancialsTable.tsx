@@ -4,20 +4,23 @@ import { useState, useEffect } from 'react'
 import { FolderKanban } from 'lucide-react'
 
 interface ProjectFinancials {
-  id:                 string
-  name:               string
-  clientName:         string | null
-  invoiced:           number
-  expenses:           number
-  laborCost:          number
-  spent:              number
-  margin:             number
-  budget:             number | null
-  remainingToInvoice: number | null
+  id:                string
+  name:              string
+  clientName:        string | null
+  invoicedEffective: number
+  spentEffective:    number
+  spentForecast:     number
+  marginCurrent:     number
+  marginForecast:    number | null
+  budget:            number | null
 }
 
 function money(n: number): string {
   return n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
+}
+
+function marginClass(n: number): string {
+  return n >= 0 ? 'text-emerald-400' : 'text-red-400'
 }
 
 export default function ProjectFinancialsTable() {
@@ -37,7 +40,7 @@ export default function ProjectFinancialsTable() {
       <table className="w-full text-sm">
         <thead className="bg-card border-b border-border">
           <tr>
-            {['Projecto','Cliente','Facturado','Despesas','Mão-de-obra','Gasto total','Margem','Orçamento','Falta facturar'].map((h, i) => (
+            {['Projecto','Cliente','Facturado (efectivo)','Gasto Total (efectivo)','Gasto Total Previsão','Margem Atual','Margem Prevista','Orçamento Previsto'].map((h, i) => (
               <th key={i} className={`${i === 0 ? 'text-left px-5' : 'text-right px-3'} py-3 text-zinc-500 font-medium text-xs uppercase tracking-wide whitespace-nowrap`}>{h}</th>
             ))}
           </tr>
@@ -52,13 +55,14 @@ export default function ProjectFinancialsTable() {
                 </div>
               </td>
               <td className="px-3 py-3 text-right text-zinc-400">{p.clientName ?? '—'}</td>
-              <td className="px-3 py-3 text-right text-zinc-300">{money(p.invoiced)}</td>
-              <td className="px-3 py-3 text-right text-zinc-400">{money(p.expenses)}</td>
-              <td className="px-3 py-3 text-right text-zinc-400">{money(p.laborCost)}</td>
-              <td className="px-3 py-3 text-right text-zinc-300">{money(p.spent)}</td>
-              <td className={`px-3 py-3 text-right font-medium ${p.margin >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{money(p.margin)}</td>
+              <td className="px-3 py-3 text-right text-zinc-300">{money(p.invoicedEffective)}</td>
+              <td className="px-3 py-3 text-right text-zinc-300">{money(p.spentEffective)}</td>
+              <td className="px-3 py-3 text-right text-zinc-400">{money(p.spentForecast)}</td>
+              <td className={`px-3 py-3 text-right font-medium ${marginClass(p.marginCurrent)}`}>{money(p.marginCurrent)}</td>
+              <td className={`px-3 py-3 text-right font-medium ${p.marginForecast != null ? marginClass(p.marginForecast) : 'text-zinc-600'}`}>
+                {p.marginForecast != null ? money(p.marginForecast) : '—'}
+              </td>
               <td className="px-3 py-3 text-right text-zinc-400">{p.budget != null ? money(p.budget) : '—'}</td>
-              <td className="px-3 py-3 text-right text-zinc-400">{p.remainingToInvoice != null ? money(p.remainingToInvoice) : '—'}</td>
             </tr>
           ))}
         </tbody>
