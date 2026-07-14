@@ -246,6 +246,19 @@ export default function InvoicesManager() {
                 <Plus size={12} /> Adicionar linha
               </Button>
             </div>
+            <div className="grid grid-cols-12 gap-2 px-0.5 mb-1">
+              {[
+                { label: 'Projecto',  span: 'col-span-3' },
+                { label: 'Descrição', span: 'col-span-5' },
+                { label: 'Qtd',       span: 'col-span-1' },
+                { label: 'Preço/un',  span: 'col-span-2' },
+                { label: 'Total',     span: 'col-span-1 text-right' },
+              ].map(col => (
+                <span key={col.label} className={`${col.span} text-[10px] font-medium text-zinc-500 uppercase tracking-wide`}>
+                  {col.label}
+                </span>
+              ))}
+            </div>
             <div className="space-y-2">
               {form.lines.map((line, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-center">
