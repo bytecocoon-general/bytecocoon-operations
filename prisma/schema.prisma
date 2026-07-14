@@ -24,8 +24,7 @@ model Employee {
     employmentType     String          @default("INTERNAL")
     monthlySalary      Decimal         @default(0) @db.Decimal(12, 2)
     perDiemRate        Decimal         @default(0) @db.Decimal(10, 2)
-    mileageMode        String          @default("NONE")
-    mileageRate        Decimal         @default(0) @db.Decimal(10, 4)
+    travelDayRate      Decimal         @default(0) @db.Decimal(10, 2)
     role               String          @default("EMPLOYEE")
     accessStatus       String          @default("APPROVED")
     accessReviewedAt   DateTime?
@@ -97,8 +96,6 @@ model Project {
     timesheetLines TimesheetLine[]
     invoiceLines   InvoiceLine[]
     expenses       Expense[]
-    travelPeriods  TravelPeriod[]
-    mileageEntries MileageEntry[]
     members        ProjectMember[]
     skills         ProjectSkill[]
     createdAt      DateTime        @default(now())
@@ -150,7 +147,7 @@ model Payroll {
     grossPay      Decimal   @db.Decimal(12, 2)
     salaryAmount  Decimal   @default(0) @db.Decimal(12, 2)
     perDiemTotal  Decimal   @default(0) @db.Decimal(12, 2)
-    mileageTotal  Decimal   @default(0) @db.Decimal(12, 2)
+    travelDaysTotal Decimal @default(0) @db.Decimal(12, 2)
     expensesTotal Decimal   @default(0) @db.Decimal(12, 2)
     deductions    Decimal   @default(0) @db.Decimal(12, 2)
     netPay        Decimal   @db.Decimal(12, 2)
@@ -175,8 +172,6 @@ model Timesheet {
     year            Int
     status          String          @default("DRAFT")
     lines           TimesheetLine[]
-    travelPeriods   TravelPeriod[]
-    mileageEntries  MileageEntry[]
     auditLogs       AuditLog[]
     submittedAt     DateTime?
     reviewedAt      DateTime?
@@ -195,46 +190,6 @@ model Timesheet {
     @@unique([employeeId, month, year])
 }
 
-model TravelPeriod {
-    id          String    @id @default(cuid())
-    timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-    timesheetId String
-    project     Project?  @relation(fields: [projectId], references: [id])
-    projectId   String?
-    startDate   DateTime  @db.Date
-    endDate     DateTime  @db.Date
-    country     String
-    description String?
-    dailyRate   Decimal   @db.Decimal(10, 2)
-    days        Int
-    amount      Decimal   @db.Decimal(12, 2)
-    createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @updatedAt
-
-    @@index([timesheetId])
-}
-
-model MileageEntry {
-    id           String    @id @default(cuid())
-    timesheet    Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-    timesheetId  String
-    project      Project?  @relation(fields: [projectId], references: [id])
-    projectId    String?
-    date         DateTime  @db.Date
-    origin       String
-    destination  String
-    purpose      String?
-    kilometres   Decimal   @db.Decimal(10, 2)
-    vehiclePlate String?
-    rateMode     String
-    rate         Decimal   @db.Decimal(10, 4)
-    amount       Decimal   @db.Decimal(12, 2)
-    createdAt    DateTime  @default(now())
-    updatedAt    DateTime  @updatedAt
-
-    @@index([timesheetId, date])
-}
-
 model TimesheetLine {
     id                 String    @id @default(cuid())
     timesheet          Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
@@ -247,6 +202,8 @@ model TimesheetLine {
     extraHours         Decimal   @default(0) @db.Decimal(5, 2)
     overtimeMultiplier Decimal?  @db.Decimal(4, 2)
     description        String?
+    perDiemRate        Decimal?  @db.Decimal(10, 2)
+    perDiemAmount      Decimal?  @db.Decimal(12, 2)
     // Marca quando esta linha entrou numa factura gerada (evita re-facturar); fica null
     // se a linha nunca chegou a ser facturada (ex: sem ProjectMember.clientRate configurada)
     invoicedAt         DateTime?

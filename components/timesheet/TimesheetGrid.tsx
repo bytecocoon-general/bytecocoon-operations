@@ -8,7 +8,6 @@ import { SelectNative } from '@/components/ui/select-native'
 import { FormMessage }  from '@/components/ui/form-message'
 import { StatusBadge }  from '@/components/ui/badge'
 import ImportTimesheetModal from './ImportTimesheetModal'
-import TravelCompensationEditor, { MileageEntryInput, TravelPeriodInput } from './TravelCompensationEditor'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -25,7 +24,7 @@ interface TimesheetLine {
   description:        string
 }
 
-interface Timesheet { id: string; status: string; lines: TimesheetLine[]; travelPeriods: TravelPeriodInput[]; mileageEntries: MileageEntryInput[] }
+interface Timesheet { id: string; status: string; lines: TimesheetLine[] }
 
 interface ProjectPermission {
   projectId:                 string
@@ -46,6 +45,7 @@ const BASE_LINE_TYPES = [
   { value: 'SICK_LEAVE',     label: 'Baixa Médica'   },
   { value: 'PUBLIC_HOLIDAY', label: 'Feriado'        },
   { value: 'OTHER_ABSENCE',  label: 'Outra Ausência' },
+  { value: 'INTERNATIONAL_TRAVEL', label: 'Deslocação Internacional' },
 ]
 const ON_CALL_TYPE = { value: 'ON_CALL', label: 'On-Call (semana)' }
 
@@ -79,8 +79,6 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
   const [month,       setMonth]       = useState(now.getMonth() + 1)
   const [timesheet,   setTimesheet]   = useState<Timesheet | null>(null)
   const [lines,       setLines]       = useState<TimesheetLine[]>([])
-  const [travelPeriods, setTravelPeriods] = useState<TravelPeriodInput[]>([])
-  const [mileageEntries, setMileageEntries] = useState<MileageEntryInput[]>([])
   const [projects,    setProjects]    = useState<Project[]>([])
   const [permissions, setPermissions] = useState<Record<string, ProjectPermission>>({})
   const [loading,     setLoading]     = useState(true)
@@ -98,8 +96,13 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   useEffect(() => {
-    fetch('/api/projects').then(r => r.json()).then(setProjects)
-    fetch(`/api/my-project-permissions${employeeId ? `?employeeId=${employeeId}` : ''}`).then(r => r.json()).then(setPermissions)
+    Promise.all([
+      fetch('/api/projects').then(r => r.json()),
+      fetch(`/api/my-project-permissions${employeeId ? `?employeeId=${employeeId}` : ''}`).then(r => r.json()),
+    ]).then(([allProjects, projectPermissions]) => {
+      setPermissions(projectPermissions)
+      setProjects(allProjects.filter((project: Project) => Boolean(projectPermissions[project.id])))
+    })
   }, [employeeId])
 
   useEffect(() => {
@@ -112,8 +115,6 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
         setLines((data?.lines ?? []).map((l: TimesheetLine) => ({
           ...l, overtimeMultiplier: l.overtimeMultiplier != null ? Number(l.overtimeMultiplier) : null,
         })))
-        setTravelPeriods((data?.travelPeriods ?? []).map((p: TravelPeriodInput) => ({ ...p, startDate: p.startDate.substring(0, 10), endDate: p.endDate.substring(0, 10), description: p.description ?? '' })))
-        setMileageEntries((data?.mileageEntries ?? []).map((m: MileageEntryInput) => ({ ...m, date: m.date.substring(0, 10), kilometres: Number(m.kilometres), purpose: m.purpose ?? '', vehiclePlate: m.vehiclePlate ?? '' })))
         setLoading(false)
       })
   }, [month, year, employeeId, refreshKey])
@@ -154,6 +155,10 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
     setLines(prev => prev.map((l, idx) => {
       if (idx !== i) return l
       const u = { ...l, [field]: value }
+      if (field === 'type' && value === 'INTERNATIONAL_TRAVEL') {
+        u.hours = 0; u.extraHours = 0; u.overtimeMultiplier = null
+        if (!u.projectId) u.projectId = projects[0]?.id ?? null
+      }
       if (field === 'extraHours' && Number(value) > 0 && !l.overtimeMultiplier)
         u.overtimeMultiplier = defaultMult(l.date, l.projectId)
       if (field === 'extraHours' && Number(value) === 0)
@@ -171,11 +176,13 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
     const newLines: TimesheetLine[] = []
     for (let d = bulk.fromDay; d <= Math.min(bulk.toDay, totalDays); d++) {
       if (bulk.workdaysOnly && isWeekend(year, month, d)) continue
-      const proj = (bulk.type === 'WORK' || bulk.type === 'ON_CALL')
+      const proj = (bulk.type === 'WORK' || bulk.type === 'ON_CALL' || bulk.type === 'INTERNATIONAL_TRAVEL')
         ? (bulk.projectId || projects[0]?.id || null) : null
       newLines.push({
         date: formatDate(year, month, d), projectId: proj, type: bulk.type,
-        hours: bulk.hours, extraHours: bulk.extraHours, overtimeMultiplier: null, description: '',
+        hours: bulk.type === 'INTERNATIONAL_TRAVEL' ? 0 : bulk.hours,
+        extraHours: bulk.type === 'INTERNATIONAL_TRAVEL' ? 0 : bulk.extraHours,
+        overtimeMultiplier: null, description: '',
       })
     }
     setLines(prev => [...prev, ...newLines])
@@ -199,8 +206,6 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
           overtimeMultiplier: Number(l.extraHours) > 0 && l.overtimeMultiplier ? Number(l.overtimeMultiplier) : null,
           description:        l.description || null,
         })),
-        travelPeriods,
-        mileageEntries,
       }
       const res = await fetch('/api/timesheets', {
         method: timesheet ? 'PUT' : 'POST',
@@ -305,11 +310,11 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
             </div>
             <div className="flex items-center gap-2">
               <label className="text-xs text-zinc-500">Tipo</label>
-              <SelectNative value={bulk.type} onChange={e => setBulk(b => ({ ...b, type: e.target.value }))} className={`${lineBase} w-40`}>
+              <SelectNative value={bulk.type} onChange={e => setBulk(b => ({ ...b, type: e.target.value, workdaysOnly: e.target.value === 'INTERNATIONAL_TRAVEL' ? false : b.workdaysOnly }))} className={`${lineBase} w-48`}>
                 {lineTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </SelectNative>
             </div>
-            {(bulk.type === 'WORK' || bulk.type === 'ON_CALL') && (
+            {(bulk.type === 'WORK' || bulk.type === 'ON_CALL' || bulk.type === 'INTERNATIONAL_TRAVEL') && (
               <div className="flex items-center gap-2">
                 <label className="text-xs text-zinc-500">Projecto</label>
                 <SelectNative value={bulk.projectId} onChange={e => setBulk(b => ({ ...b, projectId: e.target.value }))} className={`${lineBase} max-w-[200px]`}>
@@ -318,10 +323,10 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
                 </SelectNative>
               </div>
             )}
-            <div className="flex items-center gap-1.5">
+            {bulk.type !== 'INTERNATIONAL_TRAVEL' && <div className="flex items-center gap-1.5">
               <label className="text-xs text-zinc-500">{bulk.type === 'ON_CALL' ? 'Semanas' : 'Horas'}</label>
               <Input type="number" min="0" max="52" step="0.5" value={bulk.hours} onChange={e => setBulk(b => ({ ...b, hours: parseFloat(e.target.value) || 0 }))} className={`${lineBase} w-16 text-center`} />
-            </div>
+            </div>}
             {bulk.type === 'WORK' && (
               <div className="flex items-center gap-1.5">
                 <label className="text-xs text-zinc-500">Extra</label>
@@ -339,8 +344,6 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
       )}
 
       {message && <FormMessage type={message.type}>{message.text}</FormMessage>}
-
-      <TravelCompensationEditor key={`${year}-${month}`} projects={projects} travelPeriods={travelPeriods} mileageEntries={mileageEntries} onTravelChange={setTravelPeriods} onMileageChange={setMileageEntries} locked={isLocked} month={month} year={year} />
 
       {/* Days grid */}
       {loading ? (
@@ -378,6 +381,7 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
                   const lp       = perm(line.projectId)
                   const showOT   = line.type === 'WORK'
                   const isOC     = line.type === 'ON_CALL'
+                  const isInternational = line.type === 'INTERNATIONAL_TRAVEL'
                   const agMult   = defaultMult(line.date, line.projectId)
                   const mismatch = showOT && Number(line.extraHours) > 0
                                    && line.overtimeMultiplier != null
@@ -393,8 +397,8 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
                         </SelectNative>
                       </div>
 
-                      {/* Projecto (WORK + ON_CALL) */}
-                      {(line.type === 'WORK' || line.type === 'ON_CALL') && (
+                      {/* Projecto */}
+                      {(line.type === 'WORK' || line.type === 'ON_CALL' || isInternational) && (
                         <div className="w-44 shrink-0">
                           <SelectNative value={line.projectId ?? ''} disabled={isLocked} onChange={e => updateLine(line._idx, 'projectId', e.target.value || null)} className={lineBase}>
                             <option value="">Sem projecto</option>
@@ -404,7 +408,7 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
                       )}
 
                       {/* Horas / Semanas */}
-                      <div className="flex items-center gap-1 shrink-0">
+                      {!isInternational && <div className="flex items-center gap-1 shrink-0">
                         <Input
                           type="number" min="0" max={isOC ? 52 : 24} step={isOC ? 1 : 0.5}
                           value={line.hours} disabled={isLocked}
@@ -412,7 +416,7 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
                           className={`${lineBase} w-14 text-center`}
                         />
                         <span className="text-xs text-zinc-600">{isOC ? 'sem' : 'h'}</span>
-                      </div>
+                      </div>}
 
                       {/* Horas extra + multiplicador — apenas se overtimeAllowed */}
                       {showOT && (
