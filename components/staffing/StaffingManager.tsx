@@ -100,6 +100,20 @@ export default function StaffingManager() {
     setMessage({ type, text }); setTimeout(() => setMessage(null), 3500)
   }
 
+  function errorMessage(error: unknown): string {
+    if (typeof error === 'string') return error
+    if (!error || typeof error !== 'object') return 'Erro ao guardar.'
+
+    const value = error as { formErrors?: unknown; fieldErrors?: Record<string, unknown> }
+    const messages = [
+      ...(Array.isArray(value.formErrors) ? value.formErrors : []),
+      ...Object.entries(value.fieldErrors ?? {}).flatMap(([field, issues]) =>
+        Array.isArray(issues) ? issues.map(issue => `${field}: ${String(issue)}`) : []
+      ),
+    ]
+    return messages.length > 0 ? messages.join(' · ') : 'Os dados introduzidos não são válidos.'
+  }
+
   // ── Form helpers ──────────────────────────────────────────────────────────
 
   function startAdd(projectId: string) {
@@ -158,7 +172,7 @@ export default function StaffingManager() {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? 'Erro ao guardar')
+        throw new Error(errorMessage(err.error))
       }
 
       showMsg('success', editingMember ? 'Membro actualizado.' : 'Membro adicionado.')
