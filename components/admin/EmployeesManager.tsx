@@ -52,11 +52,24 @@ export default function EmployeesManager() {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: editing.id, name: form.name, email: editing.email, hourlyRate: parseFloat(form.hourlyRate) || 0, role: form.role, departmentId: form.departmentId, managerId: form.managerId || null, employmentType: form.employmentType, monthlySalary: parseFloat(form.monthlySalary) || 0, perDiemRate: parseFloat(form.perDiemRate) || 0, travelDayRate: parseFloat(form.travelDayRate) || 0 }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null)
+        const fieldErrors = payload?.error?.fieldErrors as Record<string, string[] | undefined> | undefined
+        const validationMessage = fieldErrors
+          ? Object.values(fieldErrors).flat().find(Boolean)
+          : null
+        throw new Error(
+          validationMessage
+          ?? (typeof payload?.error === 'string' ? payload.error : null)
+          ?? 'Erro ao guardar.',
+        )
+      }
       const saved = await res.json()
       setEmployees(prev => prev.map(e => e.id === saved.id ? saved : e))
       setEditing(null); showMsg('success', 'Funcionário actualizado!')
-    } catch { showMsg('error', 'Erro ao guardar.') } finally { setSaving(false) }
+    } catch (error) {
+      showMsg('error', error instanceof Error ? error.message : 'Erro ao guardar.')
+    } finally { setSaving(false) }
   }
 
   return (
