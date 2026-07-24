@@ -15,7 +15,7 @@ interface Payroll {
   id: string; month: number; year: number; status: string
   regularHours: number; overtimeHours: number; hourlyRate: number
   grossPay: number; expensesTotal: number; deductions: number; netPay: number
-  salaryAmount: number; perDiemTotal: number; mileageTotal: number
+  salaryAmount: number; perDiemTotal: number; travelDaysTotal: number
   notes: string | null; processedAt: string | null; paidAt: string | null; employee: Employee
 }
 
@@ -97,7 +97,7 @@ export default function PayrollManager() {
       {creating && (
         <div className="bg-secondary/30 border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold text-zinc-200 mb-1">Processar Payroll</h3>
-          <p className="text-xs text-zinc-500 mb-3">Para colaboradores internos, o sistema soma salário mensal, per diems e quilómetros da timesheet aprovada. As despesas seguem um fluxo separado.</p>
+          <p className="text-xs text-zinc-500 mb-3">Para colaboradores internos, o sistema soma salário mensal, per diems e compensação por dias trabalhados da timesheet aprovada. As despesas seguem um fluxo separado.</p>
           <div className="grid grid-cols-4 gap-3 mb-3">
             <div>
               <Label>Funcionário *</Label>
@@ -198,7 +198,7 @@ export default function PayrollManager() {
                           <div><span className="font-medium text-zinc-300">Horas normais:</span> {Number(p.regularHours).toFixed(2)}h</div>
                           <div><span className="font-medium text-zinc-300">Horas extra:</span> {Number(p.overtimeHours).toFixed(2)}h (×1.5)</div>
                           <div><span className="font-medium text-zinc-300">Per diems:</span> €{Number(p.perDiemTotal).toFixed(2)}</div>
-                          <div><span className="font-medium text-zinc-300">Quilómetros:</span> €{Number(p.mileageTotal).toFixed(2)}</div>
+                          <div><span className="font-medium text-zinc-300">Compensação por dias trabalhados:</span> €{Number(p.travelDaysTotal).toFixed(2)}</div>
                           <div><span className="font-medium text-zinc-300">Deduções:</span> €{Number(p.deductions).toFixed(2)}</div>
                           {p.notes  && <div className="col-span-5"><span className="font-medium text-zinc-300">Notas:</span> {p.notes}</div>}
                           {p.paidAt && <div className="col-span-5"><span className="font-medium text-zinc-300">Pago em:</span> {new Date(p.paidAt).toLocaleDateString('pt-PT')}</div>}

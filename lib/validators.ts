@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const timesheetLineSchema = z.object({
   date:               z.string(),
   projectId:          z.string().nullable().optional(),
-  type:               z.enum(['WORK','VACATION','SICK_LEAVE','PUBLIC_HOLIDAY','OTHER_ABSENCE','ON_CALL']),
+  type:               z.enum(['WORK','VACATION','SICK_LEAVE','PUBLIC_HOLIDAY','OTHER_ABSENCE','ON_CALL','INTERNATIONAL_TRAVEL']),
   hours:              z.number().min(0).max(24),
   extraHours:         z.number().min(0).max(24).default(0),
   // Multiplicador declarado pelo colaborador para as horas extra (ex: 1.5 = 150%, 2.0 = 200%)
@@ -39,15 +39,6 @@ export const timesheetSchema = z.object({
   month:      z.number().int().min(1).max(12),
   year:       z.number().int().min(2020).max(2100),
   lines:      z.array(timesheetLineSchema).max(500),
-  travelPeriods: z.array(z.object({
-    startDate: z.string(), endDate: z.string(), country: z.string().min(2).max(100),
-    projectId: z.string().cuid().optional().nullable(), description: z.string().max(500).optional().nullable(),
-  })).max(50).default([]),
-  mileageEntries: z.array(z.object({
-    date: z.string(), origin: z.string().min(1).max(200), destination: z.string().min(1).max(200),
-    kilometres: z.number().positive().max(10000), projectId: z.string().cuid().optional().nullable(),
-    purpose: z.string().max(500).optional().nullable(), vehiclePlate: z.string().max(20).optional().nullable(),
-  })).max(200).default([]),
   // Colaborador alvo, quando um ADMIN/MANAGER introduz em nome de outro (omitido = o próprio)
   employeeId: z.string().cuid().optional(),
 })
@@ -62,8 +53,7 @@ export const employeeSchema = z.object({
   employmentType: z.enum(['INTERNAL', 'EXTERNAL']).default('INTERNAL'),
   monthlySalary: z.number().min(0).max(999999).default(0),
   perDiemRate: z.number().min(0).max(9999).default(0),
-  mileageMode: z.enum(['NONE', 'PER_KM', 'PER_DAY']).default('NONE'),
-  mileageRate: z.number().min(0).max(9999).default(0),
+  travelDayRate: z.number().min(0).max(9999).default(0),
 })
 
 export const clientSchema = z.object({

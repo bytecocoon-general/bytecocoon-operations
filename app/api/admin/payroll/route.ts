@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   // Calcular a partir da timesheet aprovada
   const timesheet = await db.timesheet.findUnique({
     where:   { employeeId_month_year: { employeeId, month, year } },
-    include: { lines: true, travelPeriods: true, mileageEntries: true },
+    include: { lines: true },
   })
   if (!timesheet || timesheet.status !== 'APPROVED') {
     return NextResponse.json({ error: 'A timesheet deste mês tem de estar aprovada antes de processar o payroll.' }, { status: 400 })
@@ -76,9 +76,12 @@ export async function POST(req: NextRequest) {
 
   const hourlyRate = Number(employee.hourlyRate)
   const salaryAmount = Number(employee.monthlySalary)
-  const perDiemTotal = timesheet.travelPeriods.reduce((sum, period) => sum + Number(period.amount), 0)
-  const mileageTotal = timesheet.mileageEntries.reduce((sum, entry) => sum + Number(entry.amount), 0)
-  const grossPay = salaryAmount + perDiemTotal + mileageTotal
+  const perDiemTotal = timesheet.lines.reduce((sum, line) => sum + Number(line.perDiemAmount ?? 0), 0)
+  const workedDays = new Set(timesheet.lines
+    .filter(line => line.type === 'WORK' && Number(line.hours) + Number(line.extraHours) > 0)
+    .map(line => line.date.toISOString().substring(0, 10)))
+  const travelDaysTotal = workedDays.size * Number(employee.travelDayRate)
+  const grossPay = salaryAmount + perDiemTotal + travelDaysTotal
   const netPay = grossPay - (deductions ?? 0)
 
   const payroll = await db.payroll.create({
@@ -92,7 +95,7 @@ export async function POST(req: NextRequest) {
       grossPay,
       salaryAmount,
       perDiemTotal,
-      mileageTotal,
+      travelDaysTotal,
       expensesTotal,
       deductions: deductions ?? 0,
       netPay,
