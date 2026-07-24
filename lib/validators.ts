@@ -49,7 +49,7 @@ export const timesheetSchema = z.object({
 export const employeeSchema = z.object({
   name:         z.string().min(2).max(100),
   email:        z.string().email(),
-  hourlyRate:   z.number().positive().max(9999),
+  hourlyRate:   z.number().min(0).max(9999),
   departmentId: z.string().cuid(),
   role:         z.enum(['EMPLOYEE', 'MANAGER', 'ADMIN']).default('EMPLOYEE'),
   managerId:    z.string().cuid().optional().nullable(),
