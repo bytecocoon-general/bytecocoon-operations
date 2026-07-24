@@ -55,8 +55,16 @@ export default function EmployeesManager() {
       if (!res.ok) {
         const payload = await res.json().catch(() => null)
         const fieldErrors = payload?.error?.fieldErrors as Record<string, string[] | undefined> | undefined
-        const validationMessage = fieldErrors
-          ? Object.values(fieldErrors).flat().find(Boolean)
+        const fieldLabels: Record<string, string> = {
+          name: 'Nome', email: 'Email', hourlyRate: 'Valor/Hora', departmentId: 'Departamento',
+          role: 'Role', managerId: 'Gestor', employmentType: 'Tipo de contrato',
+          monthlySalary: 'Salário mensal', perDiemRate: 'Per diem diário', travelDayRate: 'Compensação por dia',
+        }
+        const invalidField = fieldErrors
+          ? Object.entries(fieldErrors).find(([, messages]) => messages?.length)
+          : null
+        const validationMessage = invalidField
+          ? `${fieldLabels[invalidField[0]] ?? invalidField[0]}: ${invalidField[1]?.[0]}`
           : null
         throw new Error(
           validationMessage
