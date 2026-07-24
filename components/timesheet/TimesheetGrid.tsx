@@ -71,6 +71,28 @@ function defaultBulk(days: number) {
   return { fromDay: 1, toDay: days, type: 'WORK', projectId: '', hours: 8, extraHours: 0, workdaysOnly: true }
 }
 
+function saveErrorMessage(error: unknown): string {
+  if (typeof error === 'string') return error
+  if (!error || typeof error !== 'object') return 'Erro ao guardar.'
+
+  const value = error as { formErrors?: unknown; fieldErrors?: Record<string, unknown> }
+  const formMessage = Array.isArray(value.formErrors)
+    ? value.formErrors.find((message): message is string => typeof message === 'string')
+    : null
+  if (formMessage) return formMessage
+
+  const labels: Record<string, string> = {
+    month: 'Mês', year: 'Ano', employeeId: 'Colaborador', lines: 'Linhas',
+  }
+  for (const [field, messages] of Object.entries(value.fieldErrors ?? {})) {
+    if (!Array.isArray(messages)) continue
+    const message = messages.find((item): item is string => typeof item === 'string')
+    if (message) return `${labels[field] ?? field}: ${message}`
+  }
+
+  return 'Os dados da timesheet são inválidos.'
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
@@ -212,7 +234,7 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      if (!res.ok) { const err = await res.json(); throw new Error(typeof err.error === 'string' ? err.error : 'Erro ao guardar.') }
+      if (!res.ok) { const err = await res.json(); throw new Error(saveErrorMessage(err.error)) }
       const data = await res.json()
       setTimesheet(data)
       setLines(data.lines.map((l: TimesheetLine) => ({ ...l, overtimeMultiplier: l.overtimeMultiplier != null ? Number(l.overtimeMultiplier) : null })))
