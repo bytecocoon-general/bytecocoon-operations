@@ -11,8 +11,6 @@ import { cn }          from '@/lib/utils'
 interface ProjectMembership { projectId: string; overtimeAllowed: boolean }
 interface Employee { name: string; email: string; department: { name: string }; projectMemberships: ProjectMembership[] }
 interface TimesheetLine { date: string; type: string; hours: number; extraHours: number; description: string | null; project?: { name: string } | null; projectId?: string | null }
-interface TravelPeriod { startDate: string; endDate: string; country: string; days: number; dailyRate: number; amount: number; project?: { name: string } | null }
-interface MileageEntry { date: string; origin: string; destination: string; kilometres: number; rateMode: string; rate: number; amount: number; vehiclePlate: string | null; project?: { name: string } | null }
 
 interface Timesheet {
   id:          string
@@ -23,8 +21,6 @@ interface Timesheet {
   reviewNote:  string | null
   employee:    Employee
   lines:       TimesheetLine[]
-  travelPeriods: TravelPeriod[]
-  mileageEntries: MileageEntry[]
   expenses:    unknown[]
 }
 
@@ -34,6 +30,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const LINE_TYPE_LABEL: Record<string, string> = {
   WORK: 'Trabalho', VACATION: 'Férias', SICK_LEAVE: 'Baixa', PUBLIC_HOLIDAY: 'Feriado', OTHER_ABSENCE: 'Ausência',
+  INTERNATIONAL_TRAVEL: 'Deslocação Internacional',
 }
 
 interface Props {
@@ -254,10 +251,6 @@ export default function ApprovalList({ onCountChange }: Props) {
               {/* Detalhe das linhas */}
               {expanded === ts.id && (
                 <div className="border-t border-border">
-                  {(ts.travelPeriods.length > 0 || ts.mileageEntries.length > 0) && <div className="grid gap-4 border-b border-border p-5 lg:grid-cols-2">
-                    <div><h4 className="mb-2 text-xs font-semibold uppercase text-zinc-400">Per diems</h4>{ts.travelPeriods.length === 0 ? <p className="text-xs text-zinc-600">Sem deslocações internacionais.</p> : ts.travelPeriods.map((p, i) => <p key={i} className="mb-1 text-xs text-zinc-300">{p.country} · {new Date(p.startDate).toLocaleDateString('pt-PT')}–{new Date(p.endDate).toLocaleDateString('pt-PT')} · {p.days} dias × €{Number(p.dailyRate).toFixed(2)} = <strong>€{Number(p.amount).toFixed(2)}</strong></p>)}</div>
-                    <div><h4 className="mb-2 text-xs font-semibold uppercase text-zinc-400">Quilometragem</h4>{ts.mileageEntries.length === 0 ? <p className="text-xs text-zinc-600">Sem quilómetros.</p> : ts.mileageEntries.map((m, i) => <p key={i} className="mb-1 text-xs text-zinc-300">{new Date(m.date).toLocaleDateString('pt-PT')} · {m.origin} → {m.destination} · {Number(m.kilometres).toFixed(1)} km · <strong>€{Number(m.amount).toFixed(2)}</strong></p>)}</div>
-                  </div>}
                   {(() => {
                     const badProjects = unauthorisedProjectIds(ts)
                     return (
