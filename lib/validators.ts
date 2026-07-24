@@ -50,9 +50,10 @@ export const employeeSchema = z.object({
   name:         z.string().min(2).max(100),
   email:        z.string().email(),
   hourlyRate:   z.number().min(0).max(9999),
-  departmentId: z.string().cuid(),
+  // IDs may originate from legacy/imported data and are not necessarily CUIDs.
+  departmentId: z.string().min(1),
   role:         z.enum(['EMPLOYEE', 'MANAGER', 'ADMIN']).default('EMPLOYEE'),
-  managerId:    z.string().cuid().optional().nullable(),
+  managerId:    z.string().min(1).optional().nullable(),
   employmentType: z.enum(['INTERNAL', 'EXTERNAL']).default('INTERNAL'),
   monthlySalary: z.number().min(0).max(999999).default(0),
   perDiemRate: z.number().min(0).max(9999).default(0),
