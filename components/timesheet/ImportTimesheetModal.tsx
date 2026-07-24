@@ -59,6 +59,28 @@ function typeColour(type: string): string {
   }
 }
 
+function importErrorMessage(error: unknown): string {
+  if (typeof error === 'string') return error
+  if (!error || typeof error !== 'object') return 'Erro ao importar.'
+
+  const value = error as { formErrors?: unknown; fieldErrors?: Record<string, unknown> }
+  const formMessage = Array.isArray(value.formErrors)
+    ? value.formErrors.find((message): message is string => typeof message === 'string')
+    : null
+  if (formMessage) return formMessage
+
+  const labels: Record<string, string> = {
+    month: 'Mês', year: 'Ano', projectId: 'Projecto', employeeId: 'Colaborador', lines: 'Linhas',
+  }
+  for (const [field, messages] of Object.entries(value.fieldErrors ?? {})) {
+    if (!Array.isArray(messages)) continue
+    const message = messages.find((item): item is string => typeof item === 'string')
+    if (message) return `${labels[field] ?? field}: ${message}`
+  }
+
+  return 'Os dados da importação são inválidos.'
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ImportTimesheetModal({ projects, employeeId, onClose, onImported }: Props) {
@@ -138,7 +160,7 @@ export default function ImportTimesheetModal({ projects, employeeId, onClose, on
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Erro ao importar.')
+      if (!res.ok) throw new Error(importErrorMessage(data.error))
       setImportRes({ ...data, month: result.month, year: result.year })
       setStep('result')
       onImported(result.month, result.year)
