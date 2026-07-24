@@ -45,7 +45,8 @@ const bodySchema = z.object({
   year:       z.number().int().min(2000).max(2100),
   projectId:  z.string().nullable(),
   lines:      z.array(lineSchema).min(1).max(500),
-  employeeId: z.string().cuid().optional(),
+  // Existing employees may use IDs imported from legacy systems.
+  employeeId: z.string().min(1).optional(),
 })
 
 export async function POST(req: NextRequest) {
