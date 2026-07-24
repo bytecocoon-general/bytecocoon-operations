@@ -12,7 +12,10 @@ export const timesheetLineSchema = z.object({
 })
 
 export const projectMemberSchema = z.object({
-  employeeId:                  z.string().cuid(),
+  // IDs existentes podem ter sido importados antes de o Prisma usar CUID.
+  // A base de dados define este campo como String, por isso não devemos rejeitar
+  // UUIDs ou outros identificadores válidos antes de consultar a relação.
+  employeeId:                  z.string().min(1, 'Colaborador obrigatório'),
   role:                        z.string().max(100).optional().nullable(),
   startDate:                   z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
   endDate:                     z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
