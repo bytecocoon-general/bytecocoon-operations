@@ -104,7 +104,8 @@ export const invoiceSchema = z.object({
 })
 
 export const payrollSchema = z.object({
-  employeeId:    z.string().cuid(),
+  // Existing employees may use IDs imported from legacy systems.
+  employeeId:    z.string().min(1),
   month:         z.number().int().min(1).max(12),
   year:          z.number().int().min(2020).max(2100),
   deductions:    z.number().min(0).default(0),
