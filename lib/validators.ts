@@ -43,7 +43,8 @@ export const timesheetSchema = z.object({
   year:       z.number().int().min(2020).max(2100),
   lines:      z.array(timesheetLineSchema).max(500),
   // Colaborador alvo, quando um ADMIN/MANAGER introduz em nome de outro (omitido = o próprio)
-  employeeId: z.string().cuid().optional(),
+  // Existing employees may use IDs imported from legacy systems.
+  employeeId: z.string().min(1).optional(),
 })
 
 export const employeeSchema = z.object({
