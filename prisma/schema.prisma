@@ -1,334 +1,339 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Department {
-    id        String     @id @default(cuid())
-    name      String     @unique
-    employees Employee[]
-    createdAt DateTime   @default(now())
-    updatedAt DateTime   @updatedAt
+  id        String     @id @default(cuid())
+  name      String     @unique
+  employees Employee[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
 model Employee {
-    id                 String          @id @default(cuid())
-    clerkId            String          @unique
-    name               String
-    email              String          @unique
-    hourlyRate         Decimal         @db.Decimal(10, 2)
-    employmentType     String          @default("INTERNAL")
-    monthlySalary      Decimal         @default(0) @db.Decimal(12, 2)
-    perDiemRate        Decimal         @default(0) @db.Decimal(10, 2)
-    travelDayRate      Decimal         @default(0) @db.Decimal(10, 2)
-    role               String          @default("EMPLOYEE")
-    accessStatus       String          @default("APPROVED")
-    accessReviewedAt   DateTime?
-    accessReviewedBy   String?
-    department         Department      @relation(fields: [departmentId], references: [id])
-    departmentId       String
-    manager            Employee?       @relation("EmployeeManager", fields: [managerId], references: [id])
-    managerId          String?
-    reports            Employee[]      @relation("EmployeeManager")
-    timesheets         Timesheet[]
-    createdTimesheets  Timesheet[]     @relation("TimesheetCreatedBy")
-    payrolls           Payroll[]
-    expenses           Expense[]
-    projectMemberships ProjectMember[]
-    skills             EmployeeSkill[]
-    isActive           Boolean         @default(true)
-    createdAt          DateTime        @default(now())
-    updatedAt          DateTime        @updatedAt
+  id                 String          @id @default(cuid())
+  clerkId            String          @unique
+  name               String
+  email              String          @unique
+  hourlyRate         Decimal         @db.Decimal(10, 2)
+  employmentType     String          @default("INTERNAL")
+  monthlySalary      Decimal         @default(0) @db.Decimal(12, 2)
+  compensationAmount Decimal         @default(0) @db.Decimal(12, 2)
+  compensationType   String          @default("HOURLY")
+  perDiemRate        Decimal         @default(0) @db.Decimal(10, 2)
+  travelDayRate      Decimal         @default(0) @db.Decimal(10, 2)
+  role               String          @default("EMPLOYEE")
+  accessStatus       String          @default("APPROVED")
+  accessReviewedAt   DateTime?
+  accessReviewedBy   String?
+  department         Department      @relation(fields: [departmentId], references: [id])
+  departmentId       String
+  manager            Employee?       @relation("EmployeeManager", fields: [managerId], references: [id])
+  managerId          String?
+  reports            Employee[]      @relation("EmployeeManager")
+  timesheets         Timesheet[]
+  createdTimesheets  Timesheet[]     @relation("TimesheetCreatedBy")
+  payrolls           Payroll[]
+  expenses           Expense[]
+  projectMemberships ProjectMember[]
+  skills             EmployeeSkill[]
+  isActive           Boolean         @default(true)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 }
 
 model RegistrationInvite {
-    id                String    @id @default(cuid())
-    email             String
-    status            String    @default("PENDING")
-    clerkInvitationId String?   @unique
-    invitedById       String
-    expiresAt         DateTime
-    registeredAt      DateTime?
-    registeredEmail   String?
-    validationIssue   String?
-    employeeId        String?   @unique
-    createdAt         DateTime  @default(now())
-    updatedAt         DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  email             String
+  status            String    @default("PENDING")
+  clerkInvitationId String?   @unique
+  invitedById       String
+  expiresAt         DateTime
+  registeredAt      DateTime?
+  registeredEmail   String?
+  validationIssue   String?
+  employeeId        String?   @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-    @@index([email])
-    @@index([status])
+  @@index([email])
+  @@index([status])
 }
 
 model Client {
-    id        String    @id @default(cuid())
-    name      String
-    email     String?
-    phone     String?
-    address   String?
-    vatNumber String?
-    country   String?   @default("Portugal")
-    isActive  Boolean   @default(true)
-    projects  Project[]
-    invoices  Invoice[]
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @updatedAt
+  id        String    @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  vatNumber String?
+  country   String?   @default("Portugal")
+  isActive  Boolean   @default(true)
+  projects  Project[]
+  invoices  Invoice[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Project {
-    id             String          @id @default(cuid())
-    name           String
-    client         Client?         @relation(fields: [clientId], references: [id])
-    clientId       String?
-    clientName     String?
-    budget         Decimal?        @db.Decimal(10, 2)
-    contractType   String?
-    contractStatus String?
-    startDate      DateTime?       @db.Date
-    endDate        DateTime?       @db.Date
-    currency       String          @default("EUR")
-    description    String?
-    isActive       Boolean         @default(true)
-    isBillable     Boolean         @default(true)
-    timesheetLines TimesheetLine[]
-    invoiceLines   InvoiceLine[]
-    expenses       Expense[]
-    members        ProjectMember[]
-    skills         ProjectSkill[]
-    createdAt      DateTime        @default(now())
-    updatedAt      DateTime        @updatedAt
+  id             String          @id @default(cuid())
+  name           String
+  client         Client?         @relation(fields: [clientId], references: [id])
+  clientId       String?
+  clientName     String?
+  budget         Decimal?        @db.Decimal(10, 2)
+  contractType   String?
+  contractStatus String?
+  startDate      DateTime?       @db.Date
+  endDate        DateTime?       @db.Date
+  currency       String          @default("EUR")
+  description    String?
+  isActive       Boolean         @default(true)
+  isBillable     Boolean         @default(true)
+  timesheetLines TimesheetLine[]
+  invoiceLines   InvoiceLine[]
+  expenses       Expense[]
+  members        ProjectMember[]
+  skills         ProjectSkill[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 model Invoice {
-    id            String        @id @default(cuid())
-    invoiceNumber String        @unique
-    client        Client        @relation(fields: [clientId], references: [id])
-    clientId      String
-    issueDate     DateTime      @db.Date
-    dueDate       DateTime      @db.Date
-    status        String        @default("DRAFT")
-    currency      String        @default("EUR")
-    taxRate       Decimal       @default(23) @db.Decimal(5, 2)
-    subtotal      Decimal       @db.Decimal(12, 2)
-    taxAmount     Decimal       @db.Decimal(12, 2)
-    total         Decimal       @db.Decimal(12, 2)
-    notes         String?
-    lines         InvoiceLine[]
-    createdAt     DateTime      @default(now())
-    updatedAt     DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique
+  client        Client        @relation(fields: [clientId], references: [id])
+  clientId      String
+  issueDate     DateTime      @db.Date
+  dueDate       DateTime      @db.Date
+  status        String        @default("DRAFT")
+  currency      String        @default("EUR")
+  taxRate       Decimal       @default(23) @db.Decimal(5, 2)
+  subtotal      Decimal       @db.Decimal(12, 2)
+  taxAmount     Decimal       @db.Decimal(12, 2)
+  total         Decimal       @db.Decimal(12, 2)
+  notes         String?
+  lines         InvoiceLine[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 model InvoiceLine {
-    id          String   @id @default(cuid())
-    invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-    invoiceId   String
-    project     Project? @relation(fields: [projectId], references: [id])
-    projectId   String?
-    description String
-    quantity    Decimal  @db.Decimal(10, 2)
-    unitPrice   Decimal  @db.Decimal(10, 2)
-    amount      Decimal  @db.Decimal(12, 2)
-    createdAt   DateTime @default(now())
+  id          String   @id @default(cuid())
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId   String
+  project     Project? @relation(fields: [projectId], references: [id])
+  projectId   String?
+  description String
+  quantity    Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  amount      Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
 }
 
 model Payroll {
-    id            String    @id @default(cuid())
-    employee      Employee  @relation(fields: [employeeId], references: [id])
-    employeeId    String
-    month         Int
-    year          Int
-    status        String    @default("DRAFT")
-    regularHours  Decimal   @db.Decimal(8, 2)
-    overtimeHours Decimal   @default(0) @db.Decimal(8, 2)
-    hourlyRate    Decimal   @db.Decimal(10, 2)
-    grossPay      Decimal   @db.Decimal(12, 2)
-    salaryAmount  Decimal   @default(0) @db.Decimal(12, 2)
-    perDiemTotal  Decimal   @default(0) @db.Decimal(12, 2)
-    travelDaysTotal Decimal @default(0) @db.Decimal(12, 2)
-    expensesTotal Decimal   @default(0) @db.Decimal(12, 2)
-    deductions    Decimal   @default(0) @db.Decimal(12, 2)
-    netPay        Decimal   @db.Decimal(12, 2)
-    notes         String?
-    processedAt   DateTime?
-    paidAt        DateTime?
-    createdAt     DateTime  @default(now())
-    updatedAt     DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  employee           Employee  @relation(fields: [employeeId], references: [id])
+  employeeId         String
+  month              Int
+  year               Int
+  status             String    @default("DRAFT")
+  regularHours       Decimal   @db.Decimal(8, 2)
+  overtimeHours      Decimal   @default(0) @db.Decimal(8, 2)
+  hourlyRate         Decimal   @db.Decimal(10, 2)
+  grossPay           Decimal   @db.Decimal(12, 2)
+  salaryAmount       Decimal   @default(0) @db.Decimal(12, 2)
+  compensationAmount Decimal   @default(0) @db.Decimal(12, 2)
+  compensationType   String    @default("HOURLY")
+  baseCompensation   Decimal   @default(0) @db.Decimal(12, 2)
+  perDiemTotal       Decimal   @default(0) @db.Decimal(12, 2)
+  travelDaysTotal    Decimal   @default(0) @db.Decimal(12, 2)
+  expensesTotal      Decimal   @default(0) @db.Decimal(12, 2)
+  deductions         Decimal   @default(0) @db.Decimal(12, 2)
+  netPay             Decimal   @db.Decimal(12, 2)
+  notes              String?
+  processedAt        DateTime?
+  paidAt             DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-    @@unique([employeeId, month, year])
+  @@unique([employeeId, month, year])
 }
 
 model Timesheet {
-    id              String          @id @default(cuid())
-    employee        Employee        @relation(fields: [employeeId], references: [id])
-    employeeId      String
-    // Colaborador que efectivamente introduziu o registo, quando diferente do dono
-    // (ex: admin/manager a introduzir dados retroactivos em nome de outro colaborador)
-    createdBy       Employee?       @relation("TimesheetCreatedBy", fields: [createdById], references: [id])
-    createdById     String?
-    month           Int
-    year            Int
-    status          String          @default("DRAFT")
-    lines           TimesheetLine[]
-    auditLogs       AuditLog[]
-    submittedAt     DateTime?
-    reviewedAt      DateTime?
-    reviewedBy      String?
-    reviewNote      String?
-    // Cache: fica preenchido quando todas as linhas WORK facturáveis (project.clientId != null)
-    // já têm TimesheetLine.invoicedAt, para runs futuras de geração de facturas poderem saltar
-    // esta timesheet sem ir buscar as linhas. Tem de ficar null enquanto houver alguma linha
-    // facturável por facturar — incluindo as que ficaram de fora só por falta de
-    // ProjectMember.clientRate — senão essas horas nunca mais reaparecem depois de a tarifa
-    // ser configurada.
-    fullyInvoicedAt DateTime?
-    createdAt       DateTime        @default(now())
-    updatedAt       DateTime        @updatedAt
+  id              String          @id @default(cuid())
+  employee        Employee        @relation(fields: [employeeId], references: [id])
+  employeeId      String
+  // Colaborador que efectivamente introduziu o registo, quando diferente do dono
+  // (ex: admin/manager a introduzir dados retroactivos em nome de outro colaborador)
+  createdBy       Employee?       @relation("TimesheetCreatedBy", fields: [createdById], references: [id])
+  createdById     String?
+  month           Int
+  year            Int
+  status          String          @default("DRAFT")
+  lines           TimesheetLine[]
+  auditLogs       AuditLog[]
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  reviewNote      String?
+  // Cache: fica preenchido quando todas as linhas WORK facturáveis (project.clientId != null)
+  // já têm TimesheetLine.invoicedAt, para runs futuras de geração de facturas poderem saltar
+  // esta timesheet sem ir buscar as linhas. Tem de ficar null enquanto houver alguma linha
+  // facturável por facturar — incluindo as que ficaram de fora só por falta de
+  // ProjectMember.clientRate — senão essas horas nunca mais reaparecem depois de a tarifa
+  // ser configurada.
+  fullyInvoicedAt DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-    @@unique([employeeId, month, year])
+  @@unique([employeeId, month, year])
 }
 
 model TimesheetLine {
-    id                 String    @id @default(cuid())
-    timesheet          Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-    timesheetId        String
-    date               DateTime  @db.Date
-    project            Project?  @relation(fields: [projectId], references: [id])
-    projectId          String?
-    type               String
-    hours              Decimal   @db.Decimal(5, 2)
-    extraHours         Decimal   @default(0) @db.Decimal(5, 2)
-    overtimeMultiplier Decimal?  @db.Decimal(4, 2)
-    description        String?
-    perDiemRate        Decimal?  @db.Decimal(10, 2)
-    perDiemAmount      Decimal?  @db.Decimal(12, 2)
-    // Marca quando esta linha entrou numa factura gerada (evita re-facturar); fica null
-    // se a linha nunca chegou a ser facturada (ex: sem ProjectMember.clientRate configurada)
-    invoicedAt         DateTime?
-    createdAt          DateTime  @default(now())
+  id                 String    @id @default(cuid())
+  timesheet          Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  timesheetId        String
+  date               DateTime  @db.Date
+  project            Project?  @relation(fields: [projectId], references: [id])
+  projectId          String?
+  type               String
+  hours              Decimal   @db.Decimal(5, 2)
+  extraHours         Decimal   @default(0) @db.Decimal(5, 2)
+  overtimeMultiplier Decimal?  @db.Decimal(4, 2)
+  description        String?
+  perDiemRate        Decimal?  @db.Decimal(10, 2)
+  perDiemAmount      Decimal?  @db.Decimal(12, 2)
+  // Marca quando esta linha entrou numa factura gerada (evita re-facturar); fica null
+  // se a linha nunca chegou a ser facturada (ex: sem ProjectMember.clientRate configurada)
+  invoicedAt         DateTime?
+  createdAt          DateTime  @default(now())
 }
 
 model Expense {
-    id          String    @id @default(cuid())
-    employee    Employee  @relation(fields: [employeeId], references: [id])
-    employeeId  String
-    project     Project?  @relation(fields: [projectId], references: [id])
-    projectId   String?
-    date        DateTime  @db.Date
-    category    String
-    amount      Decimal   @db.Decimal(10, 2)
-    description String?
-    receiptUrl  String?
-    status      String    @default("DRAFT")
-    submittedAt DateTime?
-    reviewedBy  String?
-    reviewNote  String?
-    reviewedAt  DateTime?
-    // Fluxo financeiro pós-aprovação: APPROVED -> PROCESSING -> PAID (espelha Payroll)
-    processedAt DateTime?
-    paidAt      DateTime?
-    createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  employeeId  String
+  project     Project?  @relation(fields: [projectId], references: [id])
+  projectId   String?
+  date        DateTime  @db.Date
+  category    String
+  amount      Decimal   @db.Decimal(10, 2)
+  description String?
+  receiptUrl  String?
+  status      String    @default("DRAFT")
+  submittedAt DateTime?
+  reviewedBy  String?
+  reviewNote  String?
+  reviewedAt  DateTime?
+  // Fluxo financeiro pós-aprovação: APPROVED -> PROCESSING -> PAID (espelha Payroll)
+  processedAt DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 // ── Alocação colaborador/projecto ─────────────────────────────────────────────
 model ProjectMember {
-    id         String   @id @default(cuid())
-    project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-    projectId  String
-    employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-    employeeId String
+  id         String   @id @default(cuid())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId  String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String
 
-    role      String?
-    startDate DateTime? @db.Date
-    endDate   DateTime? @db.Date
+  role      String?
+  startDate DateTime? @db.Date
+  endDate   DateTime? @db.Date
 
-    // Taxa faturada ao cliente (diferente do custo interno employee.hourlyRate)
-    clientRate  Decimal  @default(0) @db.Decimal(10, 2)
-    perDiemRate Decimal? @db.Decimal(10, 2)
+  // Taxa faturada ao cliente (diferente do custo interno employee.hourlyRate)
+  clientRate  Decimal  @default(0) @db.Decimal(10, 2)
+  perDiemRate Decimal? @db.Decimal(10, 2)
 
-    // Horas extra
-    overtimeAllowed           Boolean @default(false)
-    overtimeWeekdayMultiplier Decimal @default(1.5) @db.Decimal(4, 2)
-    overtimeWeekendMultiplier Decimal @default(2.0) @db.Decimal(4, 2)
+  // Horas extra
+  overtimeAllowed           Boolean @default(false)
+  overtimeWeekdayMultiplier Decimal @default(1.5) @db.Decimal(4, 2)
+  overtimeWeekendMultiplier Decimal @default(2.0) @db.Decimal(4, 2)
 
-    // On-call (semanas — hours na linha = nº semanas)
-    onCallAllowed    Boolean @default(false)
-    onCallWeeklyRate Decimal @default(0) @db.Decimal(10, 2)
+  // On-call (semanas — hours na linha = nº semanas)
+  onCallAllowed    Boolean @default(false)
+  onCallWeeklyRate Decimal @default(0) @db.Decimal(10, 2)
 
-    // Despesas
-    expensesAllowed      Boolean  @default(false)
-    expensesMonthlyLimit Decimal? @db.Decimal(10, 2)
+  // Despesas
+  expensesAllowed      Boolean  @default(false)
+  expensesMonthlyLimit Decimal? @db.Decimal(10, 2)
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@unique([projectId, employeeId])
+  @@unique([projectId, employeeId])
 }
 
 // ── Competências técnicas ─────────────────────────────────────────────────────
 
 // Catálogo global de skills
 model Skill {
-    id        String          @id @default(cuid())
-    name      String          @unique
-    category  String          @default("Técnico")
-    employees EmployeeSkill[]
-    projects  ProjectSkill[]
-    createdAt DateTime        @default(now())
+  id        String          @id @default(cuid())
+  name      String          @unique
+  category  String          @default("Técnico")
+  employees EmployeeSkill[]
+  projects  ProjectSkill[]
+  createdAt DateTime        @default(now())
 }
 
 // Skills de um colaborador (com nível 1-5)
 model EmployeeSkill {
-    id         String   @id @default(cuid())
-    employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-    employeeId String
-    skill      Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
-    skillId    String
-    // 1=Básico  2=Elementar  3=Intermédio  4=Avançado  5=Expert
-    level      Int      @default(3)
-    createdAt  DateTime @default(now())
+  id         String   @id @default(cuid())
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String
+  skill      Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  skillId    String
+  // 1=Básico  2=Elementar  3=Intermédio  4=Avançado  5=Expert
+  level      Int      @default(3)
+  createdAt  DateTime @default(now())
 
-    @@unique([employeeId, skillId])
+  @@unique([employeeId, skillId])
 }
 
 // Skills requeridas por um projecto
 model ProjectSkill {
-    id        String  @id @default(cuid())
-    project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-    projectId String
-    skill     Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
-    skillId   String
-    // Nível mínimo exigido
-    minLevel  Int     @default(3)
-    // true = obrigatório; false = valorizado mas não obrigatório
-    required  Boolean @default(true)
+  id        String  @id @default(cuid())
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  skill     Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  skillId   String
+  // Nível mínimo exigido
+  minLevel  Int     @default(3)
+  // true = obrigatório; false = valorizado mas não obrigatório
+  required  Boolean @default(true)
 
-    @@unique([projectId, skillId])
+  @@unique([projectId, skillId])
 }
 
 // ── Targets operacionais mensais ─────────────────────────────────────────────
 model OperationalTarget {
-    id                String   @id @default(cuid())
-    month             Int
-    year              Int
-    revenueTarget     Decimal? @db.Decimal(12, 2)
-    marginTarget      Decimal? @db.Decimal(5, 2) // % ex: 25.0 = 25%
-    utilizationTarget Decimal? @db.Decimal(5, 2) // %
-    createdAt         DateTime @default(now())
-    updatedAt         DateTime @updatedAt
+  id                String   @id @default(cuid())
+  month             Int
+  year              Int
+  revenueTarget     Decimal? @db.Decimal(12, 2)
+  marginTarget      Decimal? @db.Decimal(5, 2) // % ex: 25.0 = 25%
+  utilizationTarget Decimal? @db.Decimal(5, 2) // %
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-    @@unique([month, year])
+  @@unique([month, year])
 }
 
 model AuditLog {
-    id          String    @id @default(cuid())
-    timesheet   Timesheet @relation(fields: [timesheetId], references: [id])
-    timesheetId String
-    action      String
-    performedBy String
-    note        String?
-    createdAt   DateTime  @default(now())
+  id          String    @id @default(cuid())
+  timesheet   Timesheet @relation(fields: [timesheetId], references: [id])
+  timesheetId String
+  action      String
+  performedBy String
+  note        String?
+  createdAt   DateTime  @default(now())
 }

@@ -36,7 +36,11 @@ export async function PUT(req: NextRequest) {
 
   const employee = await db.employee.update({
     where:   { id },
-    data:    { ...data, hourlyRate: data.hourlyRate },
+    data:    {
+      ...data,
+      hourlyRate: data.compensationType === 'HOURLY' ? data.compensationAmount : 0,
+      monthlySalary: data.compensationType === 'MONTHLY' ? data.compensationAmount : 0,
+    },
     include: { department: true },
   })
   return NextResponse.json(employee)

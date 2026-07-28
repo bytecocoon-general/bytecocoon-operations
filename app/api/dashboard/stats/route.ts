@@ -159,7 +159,7 @@ export async function GET() {
     db.projectMember.findMany({
       where: { project: { isActive: true } },
       include: {
-        employee: { select: { id: true, name: true, hourlyRate: true, isActive: true } },
+        employee: { select: { id: true, name: true, isActive: true } },
         project:  { select: { id: true, name: true, isBillable: true } },
       },
     }),
