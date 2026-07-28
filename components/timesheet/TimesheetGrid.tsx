@@ -60,6 +60,10 @@ const STATUS_LABEL: Record<string, string> = {
 
 const lineBase = 'text-xs rounded px-2 py-1.5 focus:ring-1'
 
+// Ausências que contam para "horas não trabalhadas" — on-call (semanas) e deslocação
+// internacional (per diem) não são horas comparáveis, por isso ficam de fora dos 3 totais.
+const NON_WORKED_TYPES = ['VACATION', 'SICK_LEAVE', 'PUBLIC_HOLIDAY', 'OTHER_ABSENCE']
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getDaysInMonth(year: number, month: number) { return new Date(year, month, 0).getDate() }
@@ -265,7 +269,9 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
   const monthName  = new Date(year, month - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
   const anyOnCall  = Object.values(permissions).some(p => p.onCallAllowed)
   const lineTypes  = anyOnCall ? [...BASE_LINE_TYPES, ON_CALL_TYPE] : BASE_LINE_TYPES
-  const totalHours = lines.reduce((s, l) => s + Number(l.hours) + Number(l.extraHours), 0)
+  const workedHours    = lines.filter(l => l.type === 'WORK').reduce((s, l) => s + Number(l.hours), 0)
+  const extraHours     = lines.filter(l => l.type === 'WORK').reduce((s, l) => s + Number(l.extraHours), 0)
+  const nonWorkedHours = lines.filter(l => NON_WORKED_TYPES.includes(l.type)).reduce((s, l) => s + Number(l.hours), 0)
 
   const linesByDay: Record<string, (TimesheetLine & { _idx: number })[]> = {}
   lines.forEach((line, idx) => {
@@ -288,7 +294,9 @@ export default function TimesheetGrid({ employeeId }: { employeeId?: string }) {
           {timesheet && <StatusBadge status={timesheet.status} label={STATUS_LABEL[timesheet.status]} />}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-zinc-500 mr-1">Total: <strong className="text-zinc-300">{totalHours}h</strong></span>
+          <span className="text-sm text-zinc-500 mr-1">Trabalhadas: <strong className="text-zinc-300">{workedHours}h</strong></span>
+          <span className="text-sm text-zinc-500 mr-1">Extra: <strong className="text-zinc-300">{extraHours}h</strong></span>
+          <span className="text-sm text-zinc-500 mr-1">Não trabalhadas: <strong className="text-zinc-300">{nonWorkedHours}h</strong></span>
           {!isLocked && (
             <>
               <Button variant="outline" onClick={() => setImportOpen(true)}>
