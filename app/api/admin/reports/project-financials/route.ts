@@ -16,6 +16,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getCurrentEmployee } from '@/lib/auth'
+import { allocateCompensationByProject, type CompensationType } from '@/lib/compensation'
 
 export async function GET() {
   const actor = await getCurrentEmployee()
@@ -43,7 +44,7 @@ export async function GET() {
     }),
     db.payroll.findMany({
       where:  { status: 'PAID' },
-      select: { employeeId: true, month: true, year: true },
+      select: { employeeId: true, month: true, year: true, compensationAmount: true, compensationType: true, travelDaysTotal: true },
     }),
     db.timesheet.findMany({
       where: { status: 'APPROVED' },
@@ -51,10 +52,10 @@ export async function GET() {
         employeeId: true,
         month:      true,
         year:       true,
-        employee:   { select: { hourlyRate: true } },
+        employee:   { select: { compensationAmount: true, compensationType: true, travelDayRate: true } },
         lines: {
-          where:  { type: 'WORK', projectId: { not: null } },
-          select: { projectId: true, hours: true, extraHours: true, overtimeMultiplier: true },
+          where:  { type: { in: ['WORK', 'INTERNATIONAL_TRAVEL'] } },
+          select: { date: true, type: true, projectId: true, hours: true, extraHours: true, overtimeMultiplier: true, perDiemAmount: true },
         },
       },
     }),
@@ -71,20 +72,38 @@ export async function GET() {
   const expensesEffectiveByProject: Record<string, number> = {}
   for (const e of expensesPaid) expensesEffectiveByProject[e.projectId!] = Number(e._sum.amount ?? 0)
 
-  const paidPayrollKeys = new Set(paidPayrolls.map(p => `${p.employeeId}:${p.month}:${p.year}`))
+  const paidPayrollByKey = new Map(paidPayrolls.map(p => [`${p.employeeId}:${p.month}:${p.year}`, p]))
 
   const laborForecastByProject: Record<string, number> = {}
   const laborEffectiveByProject: Record<string, number> = {}
   for (const ts of timesheets) {
-    const rate   = Number(ts.employee.hourlyRate)
-    const isPaid = paidPayrollKeys.has(`${ts.employeeId}:${ts.month}:${ts.year}`)
+    const forecast = allocateCompensationByProject(
+      ts.employee.compensationType as CompensationType,
+      Number(ts.employee.compensationAmount),
+      Number(ts.employee.travelDayRate),
+      ts.lines,
+    )
+    for (const [projectId, cost] of Object.entries(forecast)) {
+      laborForecastByProject[projectId] = (laborForecastByProject[projectId] ?? 0) + cost
+    }
 
-    for (const line of ts.lines) {
-      const mult = line.overtimeMultiplier != null ? Number(line.overtimeMultiplier) : 1.5
-      const cost = Number(line.hours) * rate + Number(line.extraHours) * rate * mult
-
-      laborForecastByProject[line.projectId!] = (laborForecastByProject[line.projectId!] ?? 0) + cost
-      if (isPaid) laborEffectiveByProject[line.projectId!] = (laborEffectiveByProject[line.projectId!] ?? 0) + cost
+    const paidPayroll = paidPayrollByKey.get(`${ts.employeeId}:${ts.month}:${ts.year}`)
+    if (paidPayroll) {
+      const paidWorkedDays = new Set(ts.lines
+        .filter(line => line.type === 'WORK' && Number(line.hours) + Number(line.extraHours) > 0)
+        .map(line => line.date.toISOString().substring(0, 10)))
+      const paidTravelDayRate = paidWorkedDays.size > 0
+        ? Number(paidPayroll.travelDaysTotal) / paidWorkedDays.size
+        : 0
+      const effective = allocateCompensationByProject(
+        paidPayroll.compensationType as CompensationType,
+        Number(paidPayroll.compensationAmount),
+        paidTravelDayRate,
+        ts.lines,
+      )
+      for (const [projectId, cost] of Object.entries(effective)) {
+        laborEffectiveByProject[projectId] = (laborEffectiveByProject[projectId] ?? 0) + cost
+      }
     }
   }
 

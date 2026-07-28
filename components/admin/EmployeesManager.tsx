@@ -11,8 +11,8 @@ import { StatusBadge }   from '@/components/ui/badge'
 
 interface Department { id: string; name: string }
 interface Employee {
-  id: string; name: string; email: string; hourlyRate: number
-  employmentType: string; monthlySalary: number; perDiemRate: number; travelDayRate: number
+  id: string; name: string; email: string; compensationAmount: number; compensationType: string
+  employmentType: string; perDiemRate: number; travelDayRate: number
   role: string; isActive: boolean; department: Department; departmentId: string
   managerId: string | null
 }
@@ -20,13 +20,14 @@ interface Employee {
 const ROLE_LABEL: Record<string, string> = {
   EMPLOYEE: 'Colaborador', MANAGER: 'Gestor', ADMIN: 'Administrador',
 }
+const COMPENSATION_LABEL: Record<string, string> = { HOURLY: 'hora', DAILY: 'dia', MONTHLY: 'mês' }
 
 export default function EmployeesManager() {
   const [employees,   setEmployees]   = useState<Employee[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [loading,     setLoading]     = useState(true)
   const [editing,     setEditing]     = useState<Employee | null>(null)
-  const [form,        setForm]        = useState({ name: '', hourlyRate: '', role: 'EMPLOYEE', departmentId: '', isActive: true, managerId: '', employmentType: 'INTERNAL', monthlySalary: '0', perDiemRate: '0', travelDayRate: '0' })
+  const [form,        setForm]        = useState({ name: '', compensationAmount: '', compensationType: 'HOURLY', role: 'EMPLOYEE', departmentId: '', isActive: true, managerId: '', employmentType: 'INTERNAL', perDiemRate: '0', travelDayRate: '0' })
   const [saving,      setSaving]      = useState(false)
   const [message,     setMessage]     = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -41,7 +42,7 @@ export default function EmployeesManager() {
 
   function startEdit(e: Employee) {
     setEditing(e)
-    setForm({ name: e.name, hourlyRate: e.hourlyRate.toString(), role: e.role, departmentId: e.departmentId, isActive: e.isActive, managerId: e.managerId ?? '', employmentType: e.employmentType, monthlySalary: Number(e.monthlySalary).toString(), perDiemRate: Number(e.perDiemRate).toString(), travelDayRate: Number(e.travelDayRate).toString() })
+    setForm({ name: e.name, compensationAmount: Number(e.compensationAmount).toString(), compensationType: e.compensationType, role: e.role, departmentId: e.departmentId, isActive: e.isActive, managerId: e.managerId ?? '', employmentType: e.employmentType, perDiemRate: Number(e.perDiemRate).toString(), travelDayRate: Number(e.travelDayRate).toString() })
   }
 
   async function handleSubmit() {
@@ -50,15 +51,15 @@ export default function EmployeesManager() {
     try {
       const res = await fetch('/api/admin/employees', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editing.id, name: form.name, email: editing.email, hourlyRate: parseFloat(form.hourlyRate) || 0, role: form.role, departmentId: form.departmentId, managerId: form.managerId || null, employmentType: form.employmentType, monthlySalary: parseFloat(form.monthlySalary) || 0, perDiemRate: parseFloat(form.perDiemRate) || 0, travelDayRate: parseFloat(form.travelDayRate) || 0 }),
+        body: JSON.stringify({ id: editing.id, name: form.name, email: editing.email, compensationAmount: parseFloat(form.compensationAmount) || 0, compensationType: form.compensationType, role: form.role, departmentId: form.departmentId, managerId: form.managerId || null, employmentType: form.employmentType, perDiemRate: parseFloat(form.perDiemRate) || 0, travelDayRate: parseFloat(form.travelDayRate) || 0 }),
       })
       if (!res.ok) {
         const payload = await res.json().catch(() => null)
         const fieldErrors = payload?.error?.fieldErrors as Record<string, string[] | undefined> | undefined
         const fieldLabels: Record<string, string> = {
-          name: 'Nome', email: 'Email', hourlyRate: 'Valor/Hora', departmentId: 'Departamento',
+          name: 'Nome', email: 'Email', compensationAmount: 'Valor base', compensationType: 'Periodicidade', departmentId: 'Departamento',
           role: 'Role', managerId: 'Gestor', employmentType: 'Tipo de contrato',
-          monthlySalary: 'Salário mensal', perDiemRate: 'Per diem diário', travelDayRate: 'Compensação por dia',
+          perDiemRate: 'Per diem diário', travelDayRate: 'Compensação por dia',
         }
         const invalidField = fieldErrors
           ? Object.entries(fieldErrors).find(([, messages]) => messages?.length)
@@ -95,7 +96,7 @@ export default function EmployeesManager() {
           <table className="w-full text-sm">
             <thead className="bg-card border-b border-border">
               <tr>
-                {['Nome','Email','Departamento','Valor/Hora','Role',''].map((h, i) => (
+                {['Nome','Email','Departamento','Remuneração','Role',''].map((h, i) => (
                   <th key={i} className={`${i === 5 ? 'px-5' : i === 0 ? 'text-left px-5 py-3' : 'text-left px-3 py-3'} py-3 text-zinc-500 font-medium text-xs uppercase tracking-wide`}>{h}</th>
                 ))}
               </tr>
@@ -107,7 +108,7 @@ export default function EmployeesManager() {
                     <td className="px-5 py-3 font-medium text-zinc-200">{emp.name}</td>
                     <td className="px-3 py-3 text-zinc-400">{emp.email}</td>
                     <td className="px-3 py-3 text-zinc-400">{emp.department.name}</td>
-                    <td className="px-3 py-3 text-zinc-400">€{Number(emp.hourlyRate).toFixed(2)}/h</td>
+                    <td className="px-3 py-3 text-zinc-400">€{Number(emp.compensationAmount).toFixed(2)}/{COMPENSATION_LABEL[emp.compensationType] ?? emp.compensationType}</td>
                     <td className="px-3 py-3">
                       <StatusBadge status={emp.role} label={ROLE_LABEL[emp.role]} />
                     </td>
@@ -132,8 +133,8 @@ export default function EmployeesManager() {
                             </SelectNative>
                           </div>
                           <div>
-                            <Label>Valor/Hora (€)</Label>
-                            <Input className="mt-1" type="number" step="0.01" value={form.hourlyRate} onChange={e => setForm(f => ({ ...f, hourlyRate: e.target.value }))} />
+                            <Label>Valor base (€)</Label>
+                            <Input className="mt-1" type="number" step="0.01" value={form.compensationAmount} onChange={e => setForm(f => ({ ...f, compensationAmount: e.target.value }))} />
                           </div>
                           <div>
                             <Label>Role</Label>
@@ -151,7 +152,7 @@ export default function EmployeesManager() {
                             </SelectNative>
                           </div>
                           <div><Label>Tipo de contrato</Label><SelectNative className="mt-1" value={form.employmentType} onChange={e => setForm(f => ({ ...f, employmentType: e.target.value }))}><option value="INTERNAL">Interno</option><option value="EXTERNAL">Externo</option></SelectNative></div>
-                          <div><Label>Salário mensal (€)</Label><Input className="mt-1" type="number" step="0.01" value={form.monthlySalary} onChange={e => setForm(f => ({ ...f, monthlySalary: e.target.value }))} /></div>
+                          <div><Label>Periodicidade</Label><SelectNative className="mt-1" value={form.compensationType} onChange={e => setForm(f => ({ ...f, compensationType: e.target.value }))}><option value="HOURLY">Por hora</option><option value="DAILY">Por dia</option><option value="MONTHLY">Mensal</option></SelectNative></div>
                           <div><Label>Per diem diário (€)</Label><Input className="mt-1" type="number" step="0.01" value={form.perDiemRate} onChange={e => setForm(f => ({ ...f, perDiemRate: e.target.value }))} /></div>
                           <div><Label>Compensação por dia trabalhado (€)</Label><Input className="mt-1" type="number" step="0.01" value={form.travelDayRate} onChange={e => setForm(f => ({ ...f, travelDayRate: e.target.value }))} /></div>
                         </div>

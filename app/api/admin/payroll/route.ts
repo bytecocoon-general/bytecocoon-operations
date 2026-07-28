@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { payrollSchema } from '@/lib/validators'
 import { z } from 'zod'
+import { calculateBaseCompensation, type CompensationType } from '@/lib/compensation'
 
 async function requireAdmin(userId: string) {
   const employee = await db.employee.findUnique({ where: { clerkId: userId } })
@@ -74,14 +75,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const hourlyRate = Number(employee.hourlyRate)
-  const salaryAmount = Number(employee.monthlySalary)
+  const compensationType = employee.compensationType as CompensationType
+  const compensationAmount = Number(employee.compensationAmount)
+  const baseCompensation = calculateBaseCompensation(compensationType, compensationAmount, timesheet.lines)
+  const hourlyRate = compensationType === 'HOURLY' ? compensationAmount : 0
+  const salaryAmount = baseCompensation
   const perDiemTotal = timesheet.lines.reduce((sum, line) => sum + Number(line.perDiemAmount ?? 0), 0)
   const workedDays = new Set(timesheet.lines
     .filter(line => line.type === 'WORK' && Number(line.hours) + Number(line.extraHours) > 0)
     .map(line => line.date.toISOString().substring(0, 10)))
   const travelDaysTotal = workedDays.size * Number(employee.travelDayRate)
-  const grossPay = salaryAmount + perDiemTotal + travelDaysTotal
+  const grossPay = baseCompensation + perDiemTotal + travelDaysTotal
   const netPay = grossPay - (deductions ?? 0)
 
   const payroll = await db.payroll.create({
@@ -94,6 +98,9 @@ export async function POST(req: NextRequest) {
       hourlyRate,
       grossPay,
       salaryAmount,
+      compensationAmount,
+      compensationType,
+      baseCompensation,
       perDiemTotal,
       travelDaysTotal,
       expensesTotal,

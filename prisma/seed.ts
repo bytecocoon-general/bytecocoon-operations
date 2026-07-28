@@ -121,8 +121,8 @@ async function main() {
   for (const e of EMPLOYEES) {
     const emp = await db.employee.upsert({
       where:  { clerkId: e.clerkId },
-      update: { name: e.name, email: e.email, hourlyRate: dec(e.rate), role: e.role, departmentId: deptMap[e.dept] },
-      create: { clerkId: e.clerkId, name: e.name, email: e.email, hourlyRate: dec(e.rate), role: e.role, departmentId: deptMap[e.dept] },
+      update: { name: e.name, email: e.email, hourlyRate: dec(e.rate), compensationAmount: dec(e.rate), compensationType: 'HOURLY', role: e.role, departmentId: deptMap[e.dept] },
+      create: { clerkId: e.clerkId, name: e.name, email: e.email, hourlyRate: dec(e.rate), compensationAmount: dec(e.rate), compensationType: 'HOURLY', role: e.role, departmentId: deptMap[e.dept] },
     })
     empMap[e.clerkId] = emp.id
   }
@@ -337,6 +337,9 @@ async function main() {
           regularHours:  dec(regHours),
           overtimeHours: dec(otHours),
           hourlyRate:    dec(empDef.rate),
+          compensationAmount: dec(empDef.rate),
+          compensationType: 'HOURLY',
+          baseCompensation: dec(Math.round(gross * 100) / 100),
           grossPay:      dec(Math.round(gross * 100) / 100),
           deductions:    dec(Math.round(ded   * 100) / 100),
           netPay:        dec(Math.round(net   * 100) / 100),
