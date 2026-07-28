@@ -22,6 +22,28 @@ interface Payroll {
 const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 const STATUS_LABEL: Record<string, string> = { DRAFT: 'Rascunho', PROCESSED: 'Processado', PAID: 'Pago' }
 
+function payrollErrorMessage(error: unknown, fallback = 'Erro ao processar.'): string {
+  if (typeof error === 'string') return error
+  if (!error || typeof error !== 'object') return fallback
+
+  const value = error as { formErrors?: unknown; fieldErrors?: Record<string, unknown> }
+  const formMessage = Array.isArray(value.formErrors)
+    ? value.formErrors.find((message): message is string => typeof message === 'string')
+    : null
+  if (formMessage) return formMessage
+
+  const labels: Record<string, string> = {
+    employeeId: 'Funcionário', month: 'Mês', year: 'Ano', deductions: 'Deduções', notes: 'Notas',
+  }
+  for (const [field, messages] of Object.entries(value.fieldErrors ?? {})) {
+    if (!Array.isArray(messages)) continue
+    const message = messages.find((item): item is string => typeof item === 'string')
+    if (message) return `${labels[field] ?? field}: ${message}`
+  }
+
+  return fallback
+}
+
 export default function PayrollManager() {
   const now = new Date()
   const [payrolls,    setPayrolls]    = useState<Payroll[]>([])
@@ -37,24 +59,40 @@ export default function PayrollManager() {
 
   function showMsg(type: 'success' | 'error', text: string) { setMessage({ type, text }); setTimeout(() => setMessage(null), 3000) }
 
-  function load() {
+  async function load() {
     setLoading(true)
     const params = new URLSearchParams()
     if (filterMonth) params.set('month', filterMonth)
     if (filterYear)  params.set('year',  filterYear)
-    fetch(`/api/admin/payroll?${params}`).then(r => r.json()).then(data => { setPayrolls(data); setLoading(false) })
+    try {
+      const res = await fetch(`/api/admin/payroll?${params}`)
+      const data = await res.json()
+      if (!res.ok || !Array.isArray(data)) throw new Error(payrollErrorMessage(data?.error, 'Erro ao carregar o payroll.'))
+      setPayrolls(data)
+    } catch (error) {
+      setPayrolls([])
+      showMsg('error', error instanceof Error ? error.message : 'Erro ao carregar o payroll.')
+    } finally { setLoading(false) }
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load() }, [filterMonth, filterYear])
-  useEffect(() => { fetch('/api/admin/employees').then(r => r.json()).then(setEmployees) }, [])
+  useEffect(() => {
+    fetch('/api/admin/employees')
+      .then(async res => {
+        const data = await res.json()
+        if (!res.ok || !Array.isArray(data)) throw new Error(payrollErrorMessage(data?.error, 'Erro ao carregar os funcionários.'))
+        setEmployees(data)
+      })
+      .catch(error => showMsg('error', error instanceof Error ? error.message : 'Erro ao carregar os funcionários.'))
+  }, [])
 
   async function handleCreate() {
     setSaving(true)
     try {
       const res = await fetch('/api/admin/payroll', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ employeeId: form.employeeId, month: parseInt(form.month), year: parseInt(form.year), deductions: parseFloat(form.deductions) || 0, notes: form.notes || null }) })
       const data = await res.json()
-      if (!res.ok) { showMsg('error', data.error ?? 'Erro ao processar.'); return }
+      if (!res.ok) { showMsg('error', payrollErrorMessage(data.error)); return }
       setPayrolls(prev => [data, ...prev]); setCreating(false); showMsg('success', 'Payroll calculado!')
     } catch { showMsg('error', 'Erro ao processar.') } finally { setSaving(false) }
   }
@@ -68,7 +106,7 @@ export default function PayrollManager() {
     if (!confirm('Eliminar este registo de payroll?')) return
     const res = await fetch(`/api/admin/payroll?id=${id}`, { method: 'DELETE' })
     if (res.ok) { setPayrolls(prev => prev.filter(p => p.id !== id)); showMsg('success', 'Eliminado.') }
-    else { const data = await res.json(); showMsg('error', data.error ?? 'Erro.') }
+    else { const data = await res.json(); showMsg('error', payrollErrorMessage(data.error, 'Erro ao eliminar.')) }
   }
 
   const totalNet = payrolls.reduce((s, p) => s + Number(p.netPay), 0)
