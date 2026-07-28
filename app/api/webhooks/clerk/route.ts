@@ -77,6 +77,8 @@ export async function POST(req: Request) {
         name:         fullName,
         email:        email,
         hourlyRate:   0,           // Admin define depois
+        compensationAmount: 0,
+        compensationType: 'HOURLY',
         role:         'EMPLOYEE',  // Role por defeito
         accessStatus: 'PENDING',
         isActive:     false,

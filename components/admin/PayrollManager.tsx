@@ -10,17 +10,19 @@ import { FormMessage }   from '@/components/ui/form-message'
 import { StatusBadge }   from '@/components/ui/badge'
 
 interface Department { id: string; name: string }
-interface Employee   { id: string; name: string; hourlyRate: number; employmentType: string; department: Department }
+interface Employee   { id: string; name: string; compensationAmount: number; compensationType: string; employmentType: string; department: Department }
 interface Payroll {
   id: string; month: number; year: number; status: string
   regularHours: number; overtimeHours: number; hourlyRate: number
   grossPay: number; expensesTotal: number; deductions: number; netPay: number
   salaryAmount: number; perDiemTotal: number; travelDaysTotal: number
+  compensationAmount: number; compensationType: string; baseCompensation: number
   notes: string | null; processedAt: string | null; paidAt: string | null; employee: Employee
 }
 
 const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 const STATUS_LABEL: Record<string, string> = { DRAFT: 'Rascunho', PROCESSED: 'Processado', PAID: 'Pago' }
+const COMPENSATION_LABEL: Record<string, string> = { HOURLY: 'hora', DAILY: 'dia', MONTHLY: 'mês' }
 
 function payrollErrorMessage(error: unknown, fallback = 'Erro ao processar.'): string {
   if (typeof error === 'string') return error
@@ -135,7 +137,7 @@ export default function PayrollManager() {
       {creating && (
         <div className="bg-secondary/30 border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold text-zinc-200 mb-1">Processar Payroll</h3>
-          <p className="text-xs text-zinc-500 mb-3">Para colaboradores internos, o sistema soma salário mensal, per diems e compensação por dias trabalhados da timesheet aprovada. As despesas seguem um fluxo separado.</p>
+          <p className="text-xs text-zinc-500 mb-3">Para colaboradores internos, o sistema calcula a remuneração por hora, dia ou mês e soma per diems e compensação por dias trabalhados da timesheet aprovada. As despesas seguem um fluxo separado.</p>
           <div className="grid grid-cols-4 gap-3 mb-3">
             <div>
               <Label>Funcionário *</Label>
@@ -232,7 +234,8 @@ export default function PayrollManager() {
                     <tr key={`exp-${p.id}`} className="bg-secondary/20">
                       <td colSpan={10} className="px-8 py-3">
                         <div className="grid grid-cols-5 gap-4 text-xs text-zinc-400">
-                          <div><span className="font-medium text-zinc-300">Salário mensal:</span> €{Number(p.salaryAmount).toFixed(2)}</div>
+                          <div><span className="font-medium text-zinc-300">Remuneração base:</span> €{Number(p.baseCompensation ?? p.salaryAmount).toFixed(2)}</div>
+                          <div><span className="font-medium text-zinc-300">Valor contratual:</span> €{Number(p.compensationAmount).toFixed(2)}/{COMPENSATION_LABEL[p.compensationType] ?? p.compensationType}</div>
                           <div><span className="font-medium text-zinc-300">Horas normais:</span> {Number(p.regularHours).toFixed(2)}h</div>
                           <div><span className="font-medium text-zinc-300">Horas extra:</span> {Number(p.overtimeHours).toFixed(2)}h (×1.5)</div>
                           <div><span className="font-medium text-zinc-300">Per diems:</span> €{Number(p.perDiemTotal).toFixed(2)}</div>
