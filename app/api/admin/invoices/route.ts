@@ -139,12 +139,6 @@ export async function PUT(req: NextRequest) {
   const { id, issueDate, dueDate, lines, taxRate, ...rest } = parsed.data
   const { subtotal, taxAmount, total } = calcTotals(lines, taxRate)
 
-  const existing = await db.invoice.findUnique({ where: { id }, select: { status: true } })
-  if (!existing) return NextResponse.json({ error: 'Fatura não encontrada.' }, { status: 404 })
-  if (existing.status !== 'DRAFT') {
-    return NextResponse.json({ error: 'Só é possível editar faturas em rascunho.' }, { status: 409 })
-  }
-
   const invoice = await db.$transaction(async (tx) => {
     await tx.invoiceLine.deleteMany({ where: { invoiceId: id } })
     return tx.invoice.update({
@@ -184,12 +178,6 @@ export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 })
-
-  const invoice = await db.invoice.findUnique({ where: { id }, select: { status: true } })
-  if (!invoice) return NextResponse.json({ error: 'Fatura não encontrada.' }, { status: 404 })
-  if (invoice.status !== 'DRAFT') {
-    return NextResponse.json({ error: 'Só é possível eliminar faturas em rascunho.' }, { status: 409 })
-  }
 
   await db.invoice.delete({ where: { id } })
   return NextResponse.json({ ok: true })
