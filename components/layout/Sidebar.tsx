@@ -29,7 +29,7 @@ const navItems: NavItem[] = [
 
   // ── Operações ─────────────────────────────────────────────────────────────
   { divider: true, label: 'Operações', roles: ['ADMIN'] },
-  { href: '/dashboard/payroll',   label: 'Payroll',    icon: Banknote,  roles: ['ADMIN'] },
+  { href: '/dashboard/payroll',   label: 'Custos Mensais', icon: Banknote,  roles: ['ADMIN'] },
   { href: '/dashboard/invoices',  label: 'Faturas',    icon: Receipt,   roles: ['ADMIN'] },
   { href: '/dashboard/reports',   label: 'Relatórios', icon: BarChart3, roles: ['ADMIN'] },
 ]
