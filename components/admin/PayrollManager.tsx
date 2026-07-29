@@ -69,11 +69,11 @@ export default function PayrollManager() {
     try {
       const res = await fetch(`/api/admin/payroll?${params}`)
       const data = await res.json()
-      if (!res.ok || !Array.isArray(data)) throw new Error(payrollErrorMessage(data?.error, 'Erro ao carregar o payroll.'))
+      if (!res.ok || !Array.isArray(data)) throw new Error(payrollErrorMessage(data?.error, 'Erro ao carregar os custos.'))
       setPayrolls(data)
     } catch (error) {
       setPayrolls([])
-      showMsg('error', error instanceof Error ? error.message : 'Erro ao carregar o payroll.')
+      showMsg('error', error instanceof Error ? error.message : 'Erro ao carregar os custos.')
     } finally { setLoading(false) }
   }
 
@@ -95,7 +95,7 @@ export default function PayrollManager() {
       const res = await fetch('/api/admin/payroll', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ employeeId: form.employeeId, month: parseInt(form.month), year: parseInt(form.year), deductions: parseFloat(form.deductions) || 0, notes: form.notes || null }) })
       const data = await res.json()
       if (!res.ok) { showMsg('error', payrollErrorMessage(data.error)); return }
-      setPayrolls(prev => [data, ...prev]); setCreating(false); showMsg('success', 'Payroll calculado!')
+      setPayrolls(prev => [data, ...prev]); setCreating(false); showMsg('success', 'Custo registado!')
     } catch { showMsg('error', 'Erro ao processar.') } finally { setSaving(false) }
   }
 
@@ -105,7 +105,7 @@ export default function PayrollManager() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Eliminar este registo de payroll?')) return
+    if (!confirm('Eliminar este registo de custo?')) return
     const res = await fetch(`/api/admin/payroll?id=${id}`, { method: 'DELETE' })
     if (res.ok) { setPayrolls(prev => prev.filter(p => p.id !== id)); showMsg('success', 'Eliminado.') }
     else { const data = await res.json(); showMsg('error', payrollErrorMessage(data.error, 'Erro ao eliminar.')) }
@@ -128,7 +128,7 @@ export default function PayrollManager() {
           </span>
         </div>
         <Button onClick={() => setCreating(c => !c)} className="shrink-0">
-          <Plus size={15} /> Processar Payroll
+          <Plus size={15} /> Registar Custo
         </Button>
       </div>
 
@@ -136,14 +136,14 @@ export default function PayrollManager() {
 
       {creating && (
         <div className="bg-secondary/30 border border-border rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-zinc-200 mb-1">Processar Payroll</h3>
-          <p className="text-xs text-zinc-500 mb-3">Para colaboradores internos, o sistema calcula a remuneração por hora, dia ou mês e soma per diems e compensação por dias trabalhados da timesheet aprovada. As despesas seguem um fluxo separado.</p>
+          <h3 className="text-sm font-semibold text-zinc-200 mb-1">Registar Custo Mensal</h3>
+          <p className="text-xs text-zinc-500 mb-3">Aplica-se a colaboradores internos e externos: o sistema calcula a remuneração por hora, dia ou mês e soma per diems e compensação por dias trabalhados da timesheet aprovada. As despesas seguem um fluxo separado.</p>
           <div className="grid grid-cols-4 gap-3 mb-3">
             <div>
               <Label>Funcionário *</Label>
               <SelectNative className="mt-1" value={form.employeeId} onChange={e => setForm(p => ({ ...p, employeeId: e.target.value }))}>
                 <option value="">— Seleccionar —</option>
-                {employees.filter(e => e.employmentType === 'INTERNAL').map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </SelectNative>
             </div>
             <div>
@@ -251,7 +251,7 @@ export default function PayrollManager() {
               ))}
             </tbody>
           </table>
-          {payrolls.length === 0 && <div className="text-center py-12 text-zinc-600 text-sm">Sem registos de payroll para este período.</div>}
+          {payrolls.length === 0 && <div className="text-center py-12 text-zinc-600 text-sm">Sem registos de custos para este período.</div>}
         </div>
       )}
     </div>

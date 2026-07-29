@@ -47,11 +47,10 @@ export async function POST(req: NextRequest) {
   const { employeeId, month, year, deductions, notes } = parsed.data
 
   const existing = await db.payroll.findUnique({ where: { employeeId_month_year: { employeeId, month, year } } })
-  if (existing) return NextResponse.json({ error: 'Payroll já existe para este funcionário neste mês.' }, { status: 409 })
+  if (existing) return NextResponse.json({ error: 'Já existe um registo de custo para este funcionário neste mês.' }, { status: 409 })
 
   const employee = await db.employee.findUnique({ where: { id: employeeId } })
   if (!employee) return NextResponse.json({ error: 'Funcionário não encontrado.' }, { status: 404 })
-  if (employee.employmentType !== 'INTERNAL') return NextResponse.json({ error: 'Payroll aplica-se apenas a colaboradores internos.' }, { status: 400 })
 
   // Calcular a partir da timesheet aprovada
   const timesheet = await db.timesheet.findUnique({
@@ -59,7 +58,7 @@ export async function POST(req: NextRequest) {
     include: { lines: true },
   })
   if (!timesheet || timesheet.status !== 'APPROVED') {
-    return NextResponse.json({ error: 'A timesheet deste mês tem de estar aprovada antes de processar o payroll.' }, { status: 400 })
+    return NextResponse.json({ error: 'A timesheet deste mês tem de estar aprovada antes de registar o custo.' }, { status: 400 })
   }
 
   let regularHours  = 0
@@ -152,7 +151,7 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 })
 
   const payroll = await db.payroll.findUnique({ where: { id } })
-  if (payroll?.status === 'PAID') return NextResponse.json({ error: 'Não pode apagar um payroll já pago.' }, { status: 400 })
+  if (payroll?.status === 'PAID') return NextResponse.json({ error: 'Não pode eliminar um registo de custo já pago.' }, { status: 400 })
 
   await db.payroll.delete({ where: { id } })
   return NextResponse.json({ ok: true })
