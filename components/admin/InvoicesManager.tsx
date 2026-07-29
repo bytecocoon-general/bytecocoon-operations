@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Check, X, Receipt, Zap, Search } from 'lucide-react'
+import { Plus, Pencil, Trash2, Check, X, Receipt, Zap, Search, Ban } from 'lucide-react'
 import ClientPickerModal, { type PickedClient } from './ClientPickerModal'
 import { Button }       from '@/components/ui/button'
 import { Input }        from '@/components/ui/input'
@@ -44,13 +44,7 @@ const emptyForm = {
 }
 
 const STATUS_LABEL: Record<string, string> = { DRAFT: 'Rascunho', SENT: 'Enviada', PAID: 'Paga', OVERDUE: 'Em Atraso', CANCELLED: 'Cancelada' }
-const STATUS_TRANSITIONS: Record<string, string[]> = {
-  DRAFT: ['SENT', 'CANCELLED'],
-  SENT: ['PAID', 'CANCELLED'],
-  OVERDUE: ['PAID', 'CANCELLED'],
-  PAID: [],
-  CANCELLED: [],
-}
+const NEXT_STATUS: Record<string, string | undefined> = { DRAFT: 'SENT', SENT: 'PAID', OVERDUE: 'PAID' }
 
 // parseFloat(v) || 23 treats a deliberate 0% tax rate as "empty" and silently resets it to 23 — parse and
 // only fall back to the default when the input isn't a valid number at all.
@@ -362,35 +356,30 @@ export default function InvoicesManager() {
                   <td className="px-3 py-3 text-zinc-400">{inv.issueDate.slice(0, 10)}</td>
                   <td className="px-3 py-3 text-zinc-400">{inv.dueDate.slice(0, 10)}</td>
                   <td className="px-3 py-3">
-                    <div className="flex items-center gap-2">
+                    {NEXT_STATUS[inv.status] ? (
+                      <button
+                        type="button"
+                        disabled={statusUpdating === inv.id}
+                        title={`Alterar para ${STATUS_LABEL[NEXT_STATUS[inv.status]!]}`}
+                        onClick={() => handleStatus(inv, NEXT_STATUS[inv.status]!)}
+                        className="rounded focus:outline-none focus:ring-2 focus:ring-primary/60 disabled:opacity-50"
+                      >
+                        <StatusBadge status={inv.status} label={STATUS_LABEL[inv.status]} />
+                      </button>
+                    ) : (
                       <StatusBadge status={inv.status} label={STATUS_LABEL[inv.status]} />
-                      {STATUS_TRANSITIONS[inv.status]?.length > 0 && (
-                        <SelectNative
-                          aria-label={`Alterar estado de ${inv.invoiceNumber}`}
-                          className="h-8 w-32 text-xs"
-                          value=""
-                          disabled={statusUpdating === inv.id}
-                          onChange={event => handleStatus(inv, event.target.value)}
-                        >
-                          <option value="">Alterar…</option>
-                          {STATUS_TRANSITIONS[inv.status].map(status => (
-                            <option key={status} value={status}>{STATUS_LABEL[status]}</option>
-                          ))}
-                        </SelectNative>
-                      )}
-                    </div>
+                    )}
                   </td>
                   <td className="px-3 py-3 text-right text-zinc-400">€{Number(inv.subtotal).toFixed(2)}</td>
                   <td className="px-3 py-3 text-right text-zinc-400">€{Number(inv.taxAmount).toFixed(2)}</td>
                   <td className="px-5 py-3 text-right font-semibold text-zinc-200">€{Number(inv.total).toFixed(2)}</td>
                   <td className="px-5 py-3">
                     <div className="flex gap-1 justify-end">
-                      {inv.status === 'DRAFT' && (
-                        <>
-                          <Button variant="ghost" size="icon" onClick={() => startEdit(inv)}><Pencil size={14} /></Button>
-                          <Button variant="ghost" size="icon" className="hover:text-red-400" onClick={() => handleDelete(inv.id)}><Trash2 size={14} /></Button>
-                        </>
+                      <Button variant="ghost" size="icon" onClick={() => startEdit(inv)} title="Editar fatura"><Pencil size={14} /></Button>
+                      {inv.status !== 'PAID' && inv.status !== 'CANCELLED' && (
+                        <Button variant="ghost" size="icon" className="hover:text-amber-400" onClick={() => handleStatus(inv, 'CANCELLED')} title="Cancelar fatura"><Ban size={14} /></Button>
                       )}
+                      <Button variant="ghost" size="icon" className="hover:text-red-400" onClick={() => handleDelete(inv.id)} title="Eliminar fatura"><Trash2 size={14} /></Button>
                     </div>
                   </td>
                 </tr>
