@@ -44,6 +44,13 @@ const emptyForm = {
 }
 
 const STATUS_LABEL: Record<string, string> = { DRAFT: 'Rascunho', SENT: 'Enviada', PAID: 'Paga', OVERDUE: 'Em Atraso', CANCELLED: 'Cancelada' }
+const STATUS_TRANSITIONS: Record<string, string[]> = {
+  DRAFT: ['SENT', 'CANCELLED'],
+  SENT: ['PAID', 'CANCELLED'],
+  OVERDUE: ['PAID', 'CANCELLED'],
+  PAID: [],
+  CANCELLED: [],
+}
 
 // parseFloat(v) || 23 treats a deliberate 0% tax rate as "empty" and silently resets it to 23 — parse and
 // only fall back to the default when the input isn't a valid number at all.
@@ -65,6 +72,7 @@ export default function InvoicesManager() {
   const [showGen,      setShowGen]      = useState(false)
   const [generating,   setGenerating]   = useState(false)
   const [showPicker,   setShowPicker]   = useState(false)
+  const [statusUpdating, setStatusUpdating] = useState<string | null>(null)
 
   function showMsg(type: 'success' | 'error', text: string) {
     setMessage({ type, text })
@@ -142,6 +150,26 @@ export default function InvoicesManager() {
     const res = await fetch(`/api/admin/invoices?id=${id}`, { method: 'DELETE' })
     if (res.ok) { setInvoices(prev => prev.filter(i => i.id !== id)); showMsg('success', 'Fatura eliminada.') }
     else showMsg('error', 'Erro ao eliminar.')
+  }
+
+  async function handleStatus(inv: Invoice, status: string) {
+    if (status === inv.status) return
+    if ((status === 'PAID' || status === 'CANCELLED') && !confirm(`Alterar ${inv.invoiceNumber} para "${STATUS_LABEL[status]}"?`)) return
+
+    setStatusUpdating(inv.id)
+    try {
+      const res = await fetch('/api/admin/invoices', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: inv.id, status }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Erro ao alterar o estado.')
+      setInvoices(prev => prev.map(invoice => invoice.id === data.id ? data : invoice))
+      showMsg('success', `${inv.invoiceNumber}: ${STATUS_LABEL[status]}.`)
+    } catch (error) {
+      showMsg('error', error instanceof Error ? error.message : 'Erro ao alterar o estado.')
+    } finally { setStatusUpdating(null) }
   }
 
   async function handleGenerate() {
@@ -334,15 +362,35 @@ export default function InvoicesManager() {
                   <td className="px-3 py-3 text-zinc-400">{inv.issueDate.slice(0, 10)}</td>
                   <td className="px-3 py-3 text-zinc-400">{inv.dueDate.slice(0, 10)}</td>
                   <td className="px-3 py-3">
-                    <StatusBadge status={inv.status} label={STATUS_LABEL[inv.status]} />
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={inv.status} label={STATUS_LABEL[inv.status]} />
+                      {STATUS_TRANSITIONS[inv.status]?.length > 0 && (
+                        <SelectNative
+                          aria-label={`Alterar estado de ${inv.invoiceNumber}`}
+                          className="h-8 w-32 text-xs"
+                          value=""
+                          disabled={statusUpdating === inv.id}
+                          onChange={event => handleStatus(inv, event.target.value)}
+                        >
+                          <option value="">Alterar…</option>
+                          {STATUS_TRANSITIONS[inv.status].map(status => (
+                            <option key={status} value={status}>{STATUS_LABEL[status]}</option>
+                          ))}
+                        </SelectNative>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-3 text-right text-zinc-400">€{Number(inv.subtotal).toFixed(2)}</td>
                   <td className="px-3 py-3 text-right text-zinc-400">€{Number(inv.taxAmount).toFixed(2)}</td>
                   <td className="px-5 py-3 text-right font-semibold text-zinc-200">€{Number(inv.total).toFixed(2)}</td>
                   <td className="px-5 py-3">
                     <div className="flex gap-1 justify-end">
-                      <Button variant="ghost" size="icon" onClick={() => startEdit(inv)}><Pencil size={14} /></Button>
-                      <Button variant="ghost" size="icon" className="hover:text-red-400" onClick={() => handleDelete(inv.id)}><Trash2 size={14} /></Button>
+                      {inv.status === 'DRAFT' && (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => startEdit(inv)}><Pencil size={14} /></Button>
+                          <Button variant="ghost" size="icon" className="hover:text-red-400" onClick={() => handleDelete(inv.id)}><Trash2 size={14} /></Button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
